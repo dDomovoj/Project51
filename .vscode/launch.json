@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'project51'",
+            "program": "${workspaceRoot}/target/debug/project51",
+            "args": [],
+            "cwd": "${workspaceRoot}",
+            "preLaunchTask": "cargo",
+            "sourceLanguages": ["rust"],
+            "env": { "CARGO_MANIFEST_DIR": "${workspaceRoot}" }
+        }
+    ]
+}

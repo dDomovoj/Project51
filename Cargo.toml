@@ -8,6 +8,5 @@ edition = "2018"
 version = "0.14.0"
 features = ["metal"]
 
-#[dependencies]
-#if_chain = "1.0.0"
-#guard = "0.5.0"
+[dependencies]
+#quote = "=1.0.2"

@@ -2296,6 +2296,7 @@ name = "project51"
 version = "0.0.1"
 dependencies = [
  "amethyst",
+ "serde",
 ]
 
 [[package]]

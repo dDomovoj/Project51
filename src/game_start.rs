@@ -57,6 +57,7 @@ use amethyst::{
 pub struct GameStart;
 
 impl SimpleState for GameStart {
+    
     // pub fn new(fonts_dir: PathBuf, audio_dir: PathBuf) -> Pong {
     //     Pong {
     //         ball_spawn_timer: None,
@@ -68,19 +69,12 @@ impl SimpleState for GameStart {
 
     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
         let world = data.world;
-
-        // // Wait one second before spawning the ball.
-        // self.ball_spawn_timer.replace(1.0);
-
         // // Load the spritesheet necessary to render the graphics.
         // // `spritesheet` is the layout of the sprites on the image;
         // // `texture` is the pixel data.
         // self.sprite_sheet_handle.replace(load_sprite_sheet(world));
-        // initialise_paddles(world, self.sprite_sheet_handle.clone().unwrap());
-        // spawn_box(world);
         spawn_blocks(world);
         spawn_lights(world);
-        // spawn_spheres(world);
         initialize_camera(world);
 
         // audio::initialise_audio(world, &self.audio_dir);
@@ -106,9 +100,10 @@ impl SimpleState for GameStart {
     }
 }
 
+// region - Camera
+
 fn initialize_camera(world: &mut World) {
-    let mut transform = Transform::default();
-    // transform.set_translation_xyz(ARENA_WIDTH * 0.5, ARENA_HEIGHT * 0.5, 1.0);
+    let transform = Transform::default();
     let (width, height) = {
         let dim = world.read_resource::<ScreenDimensions>();
         (dim.width(), dim.height())
@@ -121,6 +116,10 @@ fn initialize_camera(world: &mut World) {
         .with(transform)
         .build();
 }
+
+// endregion
+
+// region - Light
 
 fn spawn_lights(world: &mut World) {
     let light1: Light = PointLight {
@@ -167,6 +166,10 @@ fn spawn_lights(world: &mut World) {
         .with(light2_transform)
         .build();
 }
+
+// endregion
+
+// region - Mesh
 
 fn spawn_spheres(world: &mut World) {
     let mat_defaults = world.read_resource::<MaterialDefaults>().0.clone();
@@ -272,54 +275,36 @@ fn spawn_box(world: &mut World) {
 }
 
 fn spawn_blocks(world: &mut World) {
-    // let (mesh, material) = {
-        let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
-        // let loader = world.read_resource::<Loader>();
-        //
-        // let meshes = &world.read_resource();
-        // let mesh_data = block_mesh();
-        // let mesh: Handle<Mesh> = loader.load_from_data(mesh_data, (), meshes);
-        let mesh = world.exec(|loader: AssetLoaderSystemData<amethyst::renderer::types::Mesh>| {
-            loader.load_from_data(block_mesh(), (),)
-        });
+    let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
+    let mesh = world.exec(|loader: AssetLoaderSystemData<amethyst::renderer::types::Mesh>| {
+        loader.load_from_data(block_mesh(), (),)
+    });
 
-        // let textures = &world.read_resource();
-        // let albedo = loader.load_from_data(
-        //     load_from_srgba(Srgba::new(0.1, 0.5, 0.3, 1.0)).into(),
-        //     (),
-        //     textures,
-        // );
-        let albedo = world.exec(|loader: AssetLoaderSystemData<Texture>| {
-            loader.load_from_data(
-                load_from_linear_rgba(LinSrgba::new(1.0, 0.0, 0.0, 1.0)).into(),
-                (),
-            )
-        });
+    // let textures = &world.read_resource();
+    // let albedo = loader.load_from_data(
+    //     load_from_srgba(Srgba::new(0.1, 0.5, 0.3, 1.0)).into(),
+    //     (),
+    //     textures,
+    // );
+    let albedo = world.exec(|loader: AssetLoaderSystemData<Texture>| {
+        loader.load_from_data(
+            load_from_srgba(Srgba::new(1.0, 0.0, 0.0, 0.5)).into(),
+            (),
+        )
+    });
 
-        // let materials = &world.read_resource();
-        // let mat: Handle<Material> = loader.load_from_data(
-        //     Material {
-        //         albedo,
-        //         ..default_mat.clone()
-        //     },
-        //     (),
-        //     materials,
-        // );
-        let mat = world.exec(|loader: AssetLoaderSystemData<Material>| {
-            loader.load_from_data(
-                Material {
-                    albedo,
-                    ..default_mat.clone()
-                },
-                (),
-            )
-        });
-        // (mesh, mat)
-    // };
+    let mat = world.exec(|loader: AssetLoaderSystemData<Material>| {
+        loader.load_from_data(
+            Material {
+                albedo,
+                ..default_mat.clone()
+            },
+            (),
+        )
+    });
 
     let mut trans = Transform::default();
     trans.set_translation_xyz(1.0, -1.0, -2.0);
-    // trans.set_scale(Vector3::new(100.0, 100.0, 1.0));
     world
         .create_entity()
         .with(mesh)
@@ -379,6 +364,8 @@ fn block_mesh() -> MeshData {
         .with_vertices(pos)
         .with_vertices(norm)
         .with_vertices(tex)
-        // .with_indices(Indices::U16(vec!(0, 1, 2).into()))
         .into()
 }
+
+
+// endregion

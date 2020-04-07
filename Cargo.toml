@@ -10,4 +10,5 @@ features = ["metal"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
+guard = "0.5.0"
 #quote = "=1.0.2"

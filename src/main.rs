@@ -19,6 +19,8 @@ mod bundles;
 use crate::game_start::GameStart;
 use crate::bundles::camera_control_bundle::CameraControlBundle;
 
+#[macro_use] extern crate guard;
+
 fn main() -> Result<(), Error> {
     amethyst::start_logger(Default::default());
 

@@ -1,73 +1,36 @@
-// use std::marker::PhantomData;
-
-// use super::*;
 use amethyst::{
-    // core::SystemDesc,
-    // derive::SystemDesc,
-    // ecs::{System, SystemData, World},
     shrev::{EventChannel, ReaderId},
     controls::{
         HideCursor, WindowFocus,
-        CursorHideSystemDesc, MouseFocusUpdateSystemDesc, FreeRotationSystemDesc,
+        CursorHideSystemDesc, MouseFocusUpdateSystemDesc,
     },
     core::{
         bundle::SystemBundle,
         math::{one, convert, Vector3, Unit},
-        // shrev::{EventChannel, ReaderId},
         SystemDesc,
         timing::Time,
         transform::Transform,
     },
     derive::{SystemDesc},
-    // derive_new::new,
-    // ecs::prelude::{Component, DenseVecStorage}
     ecs::{
         prelude::{Join, DispatcherBuilder, World, Component, NullStorage},
-        System, SystemData, Read, ReadStorage, WriteStorage,// WorldExt,
+        System, SystemData, Read, ReadStorage, WriteStorage,
     },
     error::Error,
     input::{BindingTypes, InputHandler, get_input_axis_simple},
-    // prelude::*,
-    winit::{DeviceEvent, Event, Window, WindowEvent},
+    winit::{DeviceEvent, Event},
 };
 use serde::{Deserialize, Serialize};
+use std::f32::consts::FRAC_PI_2;
 
-// use derive_new::new;
-// use winit::{DeviceEvent, Event, Window, WindowEvent};
-
-// #[cfg(feature = "profiler")]
-// use thread_profiler::profile_scope;
-
-// use amethyst_core::{
-//     ecs::prelude::{Join, Read, ReadExpect, ReadStorage, System, SystemData, Write, WriteStorage},
-//     math::{convert, Unit, Vector3},
-//     shrev::{EventChannel, ReaderId},
-//     timing::Time,
-//     transform::Transform,
-// };
-// use amethyst_derive::SystemDesc;
-// use amethyst_input::{get_input_axis_simple, BindingTypes, InputHandler};
-
-// use crate::{
-//     components::{ArcBallControlTag, FlyControlTag},
-//     resources::{HideCursor, WindowFocus},
-// };
-
-/// Add this to a camera if you want it to be a fly camera.
-/// You need to add the FlyControlBundle or the required systems for it to work.
-#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
-pub struct MouseControlTag;
-
-impl Component for MouseControlTag {
-    type Storage = NullStorage<MouseControlTag>;
-}
+// region - Camera Control Bundle
 
 /// The bundle that creates a flying movement system.
 ///
 /// Note: Will not actually create a moving entity. It will only register the needed resources and
 /// systems.
 ///
-/// You might want to add `"fly_movement"` and `"free_rotation"` as dependencies of the
+/// You might want to add `"creative_movement"` and `"mouse_rotation"` as dependencies of the
 /// `TransformSystem` in order to apply changes made by these systems in the same frame.
 /// Adding this bundle will grab the mouse, hide it and keep it centered.
 ///
@@ -79,8 +42,8 @@ impl Component for MouseControlTag {
 ///
 /// This bundle adds the following systems:
 ///
-/// * `FlyMovementSystem`
-/// * `FreeRotationSystem`
+/// * `CreativeMovementSystem`
+/// * `MouseRotationSystem`
 /// * `MouseFocusUpdateSystem`
 /// * `CursorHideSystem`
 #[derive(Debug)]
@@ -95,7 +58,7 @@ pub struct CameraControlBundle <T: BindingTypes> {
 
 impl<T: BindingTypes> CameraControlBundle<T> {
 
-    /// Builds a new fly control bundle using the provided axes as controls.
+    /// Builds a new camera control bundle using the provided axes as controls.
     pub fn new() -> Self {
         CameraControlBundle {
             sensitivity_x: 1.0,
@@ -168,7 +131,9 @@ impl<'a, 'b, T: BindingTypes> SystemBundle<'a, 'b> for CameraControlBundle<T> {
     }
 }
 
-/// Creative Fly
+// endregion
+
+// region - Creative Fly
 
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 pub struct CreativeMovementControlTag;
@@ -177,42 +142,18 @@ impl Component for CreativeMovementControlTag {
     type Storage = NullStorage<CreativeMovementControlTag>;
 }
 
-/// The system that manages the fly movement.
+/// The system that manages the creative movement.
 ///
 /// # Type parameters
 ///
 /// * `T`: This are the keys the `InputHandler` is using for axes and actions. Often, this is a `StringBindings`.
 #[derive(Debug, SystemDesc)]
 #[system_desc(name(CreativeMovementSystemDesc))]
-pub struct CreativeMovementSystem<T>
-where
-    T: BindingTypes,
-{
-    /// The movement speed of the movement in units per second.
+pub struct CreativeMovementSystem<T> where T: BindingTypes {
     speed: f32,
-    /// The name of the input axis to locally move in the x coordinates.
     side_input_axis: Option<T::Axis>,
-    /// The name of the input axis to locally move in the y coordinates.
     up_input_axis: Option<T::Axis>,
-    /// The name of the input axis to locally move in the z coordinates.
     forward_input_axis: Option<T::Axis>,
-}
-
-impl<T: BindingTypes> CreativeMovementSystem<T> {
-    /// Builds a new `CreativeMovementSystem` using the provided speeds and axis controls.
-    fn new(
-        speed: f32,
-        side_input_axis: Option<T::Axis>,
-        up_input_axis: Option<T::Axis>,
-        forward_input_axis: Option<T::Axis>,
-    ) -> Self {
-        CreativeMovementSystem {
-            speed,
-            side_input_axis,
-            up_input_axis,
-            forward_input_axis,
-        }
-    }
 }
 
 impl<'a, T: BindingTypes> System<'a> for CreativeMovementSystem<T> {
@@ -232,7 +173,14 @@ impl<'a, T: BindingTypes> System<'a> for CreativeMovementSystem<T> {
         let y = get_input_axis_simple(&self.up_input_axis, &input);
         let z = get_input_axis_simple(&self.forward_input_axis, &input);
 
-        if let Some(dir) = Unit::try_new(Vector3::new(x, y, z), convert(1.0e-6)) {
+        if let Some(dir) = Unit::try_new(Vector3::new(0.0, y, 0.0), convert(1.0e-1)) {
+            for (transform, _) in (&mut transform, &tag).join() {
+                let delta_sec = time.delta_seconds();
+                transform.prepend_translation_along(dir, delta_sec * self.speed);
+            }
+        }
+
+        if let Some(dir) = Unit::try_new(Vector3::new(x, 0.0, z), convert(1.0e-1)) {
             for (transform, _) in (&mut transform, &tag).join() {
                 let delta_sec = time.delta_seconds();
                 transform.append_translation_along(dir, delta_sec * self.speed);
@@ -242,7 +190,18 @@ impl<'a, T: BindingTypes> System<'a> for CreativeMovementSystem<T> {
 
 }
 
-/// Rotation
+// endregion
+
+// region - Rotation
+
+/// Add this to a camera if you want it to be a fly camera.
+/// You need to add the CameraControlBundle or the required systems for it to work.
+#[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
+pub struct MouseControlTag;
+
+impl Component for MouseControlTag {
+    type Storage = NullStorage<MouseControlTag>;
+}
 
 #[derive(Debug)]
 pub struct MouseRotationSystem {
@@ -305,21 +264,27 @@ impl<'a> System<'a> for MouseRotationSystem {
     fn run(&mut self, (events, mut transform, tag, focus, hide): Self::SystemData) {
         let focused = focus.is_focused;
         for event in events.read(&mut self.event_reader) {
-            if focused && hide.hide {
-                if let Event::DeviceEvent { ref event, .. } = *event {
-                    if let DeviceEvent::MouseMotion { delta: (x, y) } = *event {
-                        for (transform, _) in (&mut transform, &tag).join() {
-                            transform.append_rotation_x_axis(
-                                (-(y as f32) * self.sensitivity_y).to_radians(),
-                            );
-                            transform.prepend_rotation_y_axis(
-                                (-(x as f32) * self.sensitivity_x).to_radians(),
-                            );
-                        }
-                    }
-                }
+            if !focused || !hide.hide { continue; }
+            guard!(let Event::DeviceEvent { ref event, .. } = *event else { continue });
+            guard!(let DeviceEvent::MouseMotion { delta: (x, y) } = *event else { continue });
+
+            // Transform
+            for (transform, _) in (&mut transform, &tag).join() {
+                // println!("{}", transform.euler_angles().0);
+                let current_x = transform.euler_angles().0;
+                let candidate_x = current_x + (-(y as f32) * self.sensitivity_y).to_radians();
+                let clamped_x = candidate_x.max(-FRAC_PI_2).min(FRAC_PI_2);
+                let delta_x = clamped_x - current_x;
+                transform.append_rotation_x_axis(
+                    delta_x
+                );
+                transform.prepend_rotation_y_axis(
+                    (-(x as f32) * self.sensitivity_x).to_radians(),
+                );
             }
         }
     }
+
+    // endregion
 
 }

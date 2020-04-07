@@ -8,8 +8,7 @@ use amethyst::{
     // assets::{AssetStorage, Loader, Handle},
     assets::{AssetLoaderSystemData, Handle, Loader},
     controls::HideCursor,
-    // core::timing::Time,
-    core::{math::Vector3, transform::Transform},
+    core::transform::Transform,
     error::Error,
     input::{is_key_down, is_mouse_button_down},
     prelude::*,
@@ -19,8 +18,6 @@ use amethyst::{
         mtl::{Material, MaterialDefaults},
         palette::{Srgb, Srgba, LinSrgba},
         rendy::mesh::{MeshBuilder, Normal, Position, Tangent, TexCoord},
-        // rendy::mesh::{Mesh}
-        // DrawFlat, MeshHandle, PosTex,
         rendy::{
             mesh::Indices,
             texture::palette::{load_from_srgba, load_from_srgb, load_from_linear_rgba},
@@ -33,26 +30,6 @@ use amethyst::{
     window::ScreenDimensions,
     winit::{MouseButton, VirtualKeyCode},
 };
-
-// use amethyst::{
-//     renderer::{Camera, DisplayConfig, DrawFlat, MeshHandle, Pipeline, PosTex, RenderBundle, Stage},
-// }
-
-// struct ExampleState;
-
-// impl SimpleState for ExampleState {
-//     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
-//         let prefab_handle = data.world.exec(|loader: PrefabLoader<'_, MyPrefabData>| {
-//             loader.load("prefab/fly_camera.ron", RonFormat, ())
-//         });
-//         data.world
-//             .create_entity()
-//             .named("Fly Camera Scene")
-//             .with(prefab_handle)
-//             .build();
-//     }
-
-// }
 
 pub struct GameStart;
 
@@ -81,11 +58,7 @@ impl SimpleState for GameStart {
         // ui::initialize_scoreboard(world, &self.fonts_dir);
     }
 
-    fn handle_event(
-        &mut self,
-        data: StateData<'_, GameData<'_, '_>>,
-        event: StateEvent,
-    ) -> SimpleTrans {
+    fn handle_event(&mut self, data: StateData<'_, GameData<'_, '_>>, event: StateEvent) -> SimpleTrans {
         let StateData { world, .. } = data;
         if let StateEvent::Window(event) = &event {
             if is_key_down(&event, VirtualKeyCode::Escape) {
@@ -123,36 +96,34 @@ fn initialize_camera(world: &mut World) {
 
 fn spawn_lights(world: &mut World) {
     let light1: Light = PointLight {
-        intensity: 6.0,
-        color: Srgb::new(0.8, 0.0, 0.0),
+        intensity: 4.0,
+        color: Srgb::new(1.0, 0.95, 0.9),
         ..PointLight::default()
     }
     .into();
 
     let mut light1_transform = Transform::default();
-    light1_transform.set_translation_xyz(6.0, 6.0, -6.0);
+    light1_transform.set_translation_xyz(-3.0, 4.0, -4.0);
 
     let light2: Light = PointLight {
         intensity: 5.0,
-        color: Srgb::new(0.0, 0.3, 0.7),
+        color: Srgb::new(0.8, 0.9, 0.95),
         ..PointLight::default()
     }
     .into();
 
     let mut light2_transform = Transform::default();
-    light2_transform.set_translation_xyz(6.0, -6.0, -6.0);
+    light2_transform.set_translation_xyz(3.0, 0.0, 3.0);
 
-    let mut sun_light: SunLight = SunLight::default();
-    sun_light.direction = [0.0, -1.0, 0.0].into();
-    sun_light.intensity = 10.0;
+    let light3: Light = PointLight {
+        intensity: 3.0,
+        color: Srgb::new(0.8, 1.0, 0.85),
+        ..PointLight::default()
+    }
+    .into();
 
-    let sun_light: Light = sun_light.into();
-    // .into();
-
-    world
-        .create_entity()
-        .with(sun_light)
-        .build();
+    let mut light3_transform = Transform::default();
+    light3_transform.set_translation_xyz(0.0, -3.0, -1.0);
 
     world
         .create_entity()
@@ -164,6 +135,12 @@ fn spawn_lights(world: &mut World) {
         .create_entity()
         .with(light2)
         .with(light2_transform)
+        .build();
+
+    world
+        .create_entity()
+        .with(light3)
+        .with(light3_transform)
         .build();
 }
 
@@ -280,12 +257,6 @@ fn spawn_blocks(world: &mut World) {
         loader.load_from_data(block_mesh(), (),)
     });
 
-    // let textures = &world.read_resource();
-    // let albedo = loader.load_from_data(
-    //     load_from_srgba(Srgba::new(0.1, 0.5, 0.3, 1.0)).into(),
-    //     (),
-    //     textures,
-    // );
     let albedo = world.exec(|loader: AssetLoaderSystemData<Texture>| {
         loader.load_from_data(
             load_from_srgba(Srgba::new(1.0, 0.0, 0.0, 0.5)).into(),

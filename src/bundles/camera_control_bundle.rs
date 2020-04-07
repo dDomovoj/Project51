@@ -21,7 +21,7 @@ use amethyst::{
     winit::{DeviceEvent, Event},
 };
 use serde::{Deserialize, Serialize};
-use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::{FRAC_PI_2, PI};
 
 // region - Camera Control Bundle
 
@@ -268,19 +268,26 @@ impl<'a> System<'a> for MouseRotationSystem {
             guard!(let Event::DeviceEvent { ref event, .. } = *event else { continue });
             guard!(let DeviceEvent::MouseMotion { delta: (x, y) } = *event else { continue });
 
-            // Transform
             for (transform, _) in (&mut transform, &tag).join() {
-                // println!("{}", transform.euler_angles().0);
-                let current_x = transform.euler_angles().0;
-                let candidate_x = current_x + (-(y as f32) * self.sensitivity_y).to_radians();
-                let clamped_x = candidate_x.max(-FRAC_PI_2).min(FRAC_PI_2);
-                let delta_x = clamped_x - current_x;
                 transform.append_rotation_x_axis(
-                    delta_x
+                    (-(y as f32) * self.sensitivity_y).to_radians(),
                 );
                 transform.prepend_rotation_y_axis(
                     (-(x as f32) * self.sensitivity_x).to_radians(),
                 );
+                let angles = transform.euler_angles();
+                let z = angles.2;
+                let mut x = angles.0;
+                if z > -FRAC_PI_2 && z <= FRAC_PI_2 {
+                    x = x.max(-FRAC_PI_2).min(FRAC_PI_2);
+                }
+                else if x < 0_f32 {
+                    x = x.max(-PI).min(-FRAC_PI_2)
+                } 
+                else {
+                    x = x.max(FRAC_PI_2).min(PI);
+                }
+                transform.set_rotation_euler(x, angles.1, z);
             }
         }
     }
@@ -288,3 +295,21 @@ impl<'a> System<'a> for MouseRotationSystem {
     // endregion
 
 }
+
+// region - InRange
+
+trait InRange {
+
+    fn in_range(self, begin: Self, end: Self) -> bool;
+
+}
+
+impl InRange for f32 {
+
+    fn in_range(self, begin: f32, end: f32) -> bool {
+        self >= begin && self < end
+    }
+
+}
+
+// endregion

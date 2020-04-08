@@ -31,6 +31,8 @@ use amethyst::{
     winit::{MouseButton, VirtualKeyCode},
 };
 
+use std::f32::consts::{FRAC_PI_8, FRAC_PI_6};
+
 pub struct GameStart;
 
 impl SimpleState for GameStart {
@@ -76,7 +78,10 @@ impl SimpleState for GameStart {
 // region - Camera
 
 fn initialize_camera(world: &mut World) {
-    let transform = Transform::default();
+    let mut transform = Transform::default();
+    transform.append_rotation_y_axis(-FRAC_PI_6)
+        .append_rotation_x_axis(-FRAC_PI_8);
+
     let (width, height) = {
         let dim = world.read_resource::<ScreenDimensions>();
         (dim.width(), dim.height())

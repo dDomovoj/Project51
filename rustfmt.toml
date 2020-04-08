@@ -1,0 +1,9 @@
+fn_args_layout = "Compressed"
+fn_single_line = true
+indent_style = "Visual"
+trailing_comma = "Never"
+reorder_impl_items = true
+overflow_delimited_expr = true
+merge_imports = true
+where_single_line = true
+wrap_comments = true

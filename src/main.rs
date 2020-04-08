@@ -3,23 +3,27 @@ use amethyst::{
     input::{InputBundle, StringBindings},
     prelude::*,
     renderer::{
-        plugins::{RenderShaded3D, RenderPbr3D, RenderToWindow, RenderSkybox},
+        palette::Srgb,
+        pass::{DrawDebugLines, DrawDebugLinesDesc},
+        plugins::{RenderPbr3D, RenderShaded3D, RenderSkybox, RenderToWindow},
         types::DefaultBackend,
         RenderingBundle,
-        palette::Srgb,
     },
     utils::application_root_dir,
     Error,
 };
 
-mod game_start;
-mod systems;
 mod bundles;
+mod game_start;
+mod render_plugins;
+mod systems;
 
-use crate::game_start::GameStart;
+use crate::render_plugins::RenderDebugLines;
 use crate::bundles::camera_control_bundle::CameraControlBundle;
+use crate::game_start::GameStart;
 
-#[macro_use] extern crate guard;
+#[macro_use]
+extern crate guard;
 
 fn main() -> Result<(), Error> {
     amethyst::start_logger(Default::default());
@@ -41,20 +45,19 @@ fn main() -> Result<(), Error> {
                 .with_sensitivity(0.1, 0.1)
                 .with_side_input_axis(Some(String::from("move_side")))
                 .with_forward_input_axis(Some(String::from("move_forward")))
-                .with_up_input_axis(Some(String::from("move_up")))
+                .with_up_input_axis(Some(String::from("move_up"))),
         )?
         .with_bundle(TransformBundle::new().with_dep(&["mouse_rotation", "creative_movement"]))?
         .with_bundle(
             RenderingBundle::<DefaultBackend>::new()
-                .with_plugin(
-                    RenderToWindow::from_config_path(display_config_path)?
-                )
+                .with_plugin(RenderToWindow::from_config_path(display_config_path)?)
                 .with_plugin(RenderSkybox::with_colors(
                     Srgb::new(0.82, 0.51, 0.50),
                     Srgb::new(0.18, 0.11, 0.85),
                 ))
-                .with_plugin(RenderShaded3D::default()),
-                // .with_plugin(RenderPbr3D::default()),
+                .with_plugin(RenderShaded3D::default())
+                .with_plugin(RenderDebugLines::default()),
+            // .with_plugin(RenderPbr3D::default()),
         )?;
 
     let mut game = Application::build(assets_dir, GameStart)?.build(game_data)?;

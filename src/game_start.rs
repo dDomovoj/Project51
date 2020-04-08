@@ -84,7 +84,8 @@ impl SimpleState for GameStart {
 
 fn initialize_camera(world: &mut World) {
     let mut transform = Transform::default();
-    transform.append_rotation_y_axis(-FRAC_PI_6)
+    transform.set_translation_xyz(-1.5, 1.5, 3.0)
+        .append_rotation_y_axis(-FRAC_PI_6)
         .append_rotation_x_axis(-FRAC_PI_8);
 
     let (width, height) = {
@@ -104,6 +105,7 @@ fn initialize_camera(world: &mut World) {
 
 // region - Light
 
+// 1 -1 2
 fn spawn_lights(world: &mut World) {
     let light1: Light = PointLight {
         intensity: 4.0,
@@ -113,7 +115,7 @@ fn spawn_lights(world: &mut World) {
     .into();
 
     let mut light1_transform = Transform::default();
-    light1_transform.set_translation_xyz(-3.0, 4.0, -4.0);
+    light1_transform.set_translation_xyz(-4.0, 3.0, -6.0);
 
     let light2: Light = PointLight {
         intensity: 5.0,
@@ -123,7 +125,7 @@ fn spawn_lights(world: &mut World) {
     .into();
 
     let mut light2_transform = Transform::default();
-    light2_transform.set_translation_xyz(3.0, 0.0, 3.0);
+    light2_transform.set_translation_xyz(2.0, 1.0, 1.0);
 
     let light3: Light = PointLight {
         intensity: 3.0,
@@ -133,7 +135,7 @@ fn spawn_lights(world: &mut World) {
     .into();
 
     let mut light3_transform = Transform::default();
-    light3_transform.set_translation_xyz(0.0, -3.0, -1.0);
+    light3_transform.set_translation_xyz(-1.0, -2.0, 1.0);
 
     world
         .create_entity()
@@ -159,14 +161,6 @@ fn spawn_lights(world: &mut World) {
 // region - Debug
 
 fn spawn_axis(world: &mut World) {
-    // let x_axis = DebugLine::new(PosColor { 
-    //     position: Position::from([0.0, 0.0, 0.0]),
-    //     color: Color::from([1.0, 0.0, 0.0, 1.0])
-    // }, PosColor { 
-    //     position: Position::from([100.0, 0.0, 0.0]),
-    //     color: Color::from([1.0, 0.0, 0.0, 1.0])
-    // });
-
     let mut debug_lines = DebugLinesComponent::new();
     let origin = Point3::from(Vector3::new(0.0, 0.0, 0.0));
 
@@ -192,82 +186,11 @@ fn spawn_axis(world: &mut World) {
 
 // region - Mesh
 
-fn spawn_spheres(world: &mut World) {
-    let mat_defaults = world.read_resource::<MaterialDefaults>().0.clone();
-
-        println!("Load mesh");
-        let (mesh, albedo) = {
-            let mesh = world.exec(|loader: AssetLoaderSystemData<'_, Mesh>| {
-                loader.load_from_data(
-                    Shape::Sphere(12, 12)
-                        .generate::<(Vec<Position>, Vec<Normal>, Vec<Tangent>, Vec<TexCoord>)>(None)
-                        .into(),
-                    (),
-                )
-            });
-            let albedo = world.exec(|loader: AssetLoaderSystemData<'_, Texture>| {
-                loader.load_from_data(
-                    load_from_linear_rgba(LinSrgba::new(1.0, 1.0, 1.0, 0.5)).into(),
-                    (),
-                )
-            });
-
-            (mesh, albedo)
-        };
-
-        println!("Create spheres");
-        for i in 0..5 {
-            for j in 0..5 {
-                let roughness = 1.0f32 * (i as f32 / 4.0f32);
-                let metallic = 1.0f32 * (j as f32 / 4.0f32);
-
-                let mut pos = Transform::default();
-                pos.set_translation_xyz(2.0f32 * (i - 2) as f32, 2.0f32 * (j - 2) as f32, 0.0);
-
-                let mtl = world.exec(
-                    |(mtl_loader, tex_loader): (
-                        AssetLoaderSystemData<'_, Material>,
-                        AssetLoaderSystemData<'_, Texture>,
-                    )| {
-                        let metallic_roughness = tex_loader.load_from_data(
-                            load_from_linear_rgba(LinSrgba::new(0.0, roughness, metallic, 0.0))
-                                .into(),
-                            (),
-                        );
-
-                        mtl_loader.load_from_data(
-                            Material {
-                                albedo: albedo.clone(),
-                                metallic_roughness,
-                                ..mat_defaults.clone()
-                            },
-                            (),
-                        )
-                    },
-                );
-
-                world
-                    .create_entity()
-                    .with(pos)
-                    .with(mesh.clone())
-                    .with(mtl)
-                    .build();
-            }
-        }
-}
-
 fn spawn_block(world: &mut World) {
     let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
     let mesh = world.exec(|loader: AssetLoaderSystemData<Mesh>| {
         loader.load_from_data(block_mesh(), (),)
     });
-
-    // let albedo = world.exec(|loader: AssetLoaderSystemData<Texture>| {
-    //     loader.load_from_data(
-    //         load_from_srgba(Srgba::new(1.0, 0.0, 0.0, 0.5)).into(),
-    //         (),
-    //     )
-    // });
 
     let texture = world.exec(|loader: AssetLoaderSystemData<Texture>| {
         loader.load(
@@ -280,7 +203,6 @@ fn spawn_block(world: &mut World) {
     let mat = world.exec(|loader: AssetLoaderSystemData<Material>| {
         loader.load_from_data(
             Material {
-                // albedo,
                 albedo: texture,
                 ..default_mat.clone()
             },
@@ -288,8 +210,7 @@ fn spawn_block(world: &mut World) {
         )
     });
 
-    let mut trans = Transform::default();
-    trans.set_translation_xyz(1.0, -1.0, -2.0);
+    let trans = Transform::default();
     world
         .create_entity()
         .with(mesh)
@@ -335,14 +256,12 @@ fn block_mesh() -> MeshData {
     ];
 
     let tex: [[f32; 2]; 36] = [
-        [0.0, 0.0], [0.0, 0.0], [0.0, 0.0],  [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], // D - 
-        [0.0, 0.0], [0.0, 0.0], [0.0, 0.0],  [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], // U - 
-        [0.0, 0.0], [0.0, 0.0], [0.0, 0.0],  [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], // F - 
-        [0.0, 0.0], [0.0, 0.0], [0.0, 0.0],  [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], // B - 
-        [0.0, 0.0], [0.0, 0.0], [0.0, 0.0],  [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], // L - 
-        [0.0, 0.0], [0.0, 0.0], [0.0, 0.0],  [0.0, 0.0], [0.0, 0.0], [0.0, 0.0], // R - 
-
-        // [1.0, 1.0], [0.0, 0.0], [1.0, 0.0],  [1.0, 1.0], [0.0, 1.0], [0.0, 0.0],
+        [0.0, 1.0], [1.0, 0.0], [0.0, 0.0],  [0.0, 1.0], [1.0, 1.0], [1.0, 0.0], // D - v
+        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // U - v
+        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // F - v
+        [1.0, 1.0], [0.0, 0.0], [1.0, 0.0],  [1.0, 1.0], [0.0, 1.0], [0.0, 0.0], // B - v
+        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // L - v
+        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // R - v
     ];
 
     let pos: Vec<Position> = pos.iter().map(|&coords| { Position(coords) }).collect();

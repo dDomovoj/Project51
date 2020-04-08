@@ -1,9 +1,7 @@
-use amethyst::{
-    ecs::prelude::{Component, DenseVecStorage}
-};
+use amethyst::ecs::prelude::{Component, DenseVecStorage};
 
 pub struct Block {
-    pub color: (f32, f32, f32)
+    pub color: (f32, f32, f32),
 }
 
 impl Component for Block {

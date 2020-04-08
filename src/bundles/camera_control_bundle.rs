@@ -1,23 +1,20 @@
 use amethyst::{
-    shrev::{EventChannel, ReaderId},
-    controls::{
-        HideCursor, WindowFocus,
-        CursorHideSystemDesc, MouseFocusUpdateSystemDesc,
-    },
+    controls::{CursorHideSystemDesc, HideCursor, MouseFocusUpdateSystemDesc, WindowFocus},
     core::{
         bundle::SystemBundle,
-        math::{one, convert, Vector3, Unit},
-        SystemDesc,
+        math::{convert, one, Unit, Vector3},
         timing::Time,
         transform::Transform,
+        SystemDesc,
     },
-    derive::{SystemDesc},
+    derive::SystemDesc,
     ecs::{
-        prelude::{Join, DispatcherBuilder, World, Component, NullStorage},
-        System, SystemData, Read, ReadStorage, WriteStorage,
+        prelude::{Component, DispatcherBuilder, Join, NullStorage, World},
+        Read, ReadStorage, System, SystemData, WriteStorage,
     },
     error::Error,
-    input::{BindingTypes, InputHandler, get_input_axis_simple},
+    input::{get_input_axis_simple, BindingTypes, InputHandler},
+    shrev::{EventChannel, ReaderId},
     winit::{DeviceEvent, Event},
 };
 use serde::{Deserialize, Serialize};
@@ -47,7 +44,7 @@ use std::f32::consts::{FRAC_PI_2, PI};
 /// * `MouseFocusUpdateSystem`
 /// * `CursorHideSystem`
 #[derive(Debug)]
-pub struct CameraControlBundle <T: BindingTypes> {
+pub struct CameraControlBundle<T: BindingTypes> {
     sensitivity_x: f32,
     sensitivity_y: f32,
     speed: f32,
@@ -57,7 +54,6 @@ pub struct CameraControlBundle <T: BindingTypes> {
 }
 
 impl<T: BindingTypes> CameraControlBundle<T> {
-
     /// Builds a new camera control bundle using the provided axes as controls.
     pub fn new() -> Self {
         CameraControlBundle {
@@ -97,20 +93,22 @@ impl<T: BindingTypes> CameraControlBundle<T> {
         self.up_input_axis = up_input_axis;
         self
     }
-
 }
 
 impl<'a, 'b, T: BindingTypes> SystemBundle<'a, 'b> for CameraControlBundle<T> {
-
-    fn build(self, world: &mut World, builder: &mut DispatcherBuilder<'a, 'b>,) -> Result<(), Error> {
-        builder.add(CreativeMovementSystemDesc::<T>::new(
+    fn build(
+        self, world: &mut World, builder: &mut DispatcherBuilder<'a, 'b>,
+    ) -> Result<(), Error> {
+        builder.add(
+            CreativeMovementSystemDesc::<T>::new(
                 self.speed,
                 self.side_input_axis,
                 self.up_input_axis,
                 self.forward_input_axis,
-            ).build(world), 
-            "creative_movement", 
-            &[]
+            )
+            .build(world),
+            "creative_movement",
+            &[],
         );
         builder.add(
             MouseRotationSystemDesc::new(self.sensitivity_x, self.sensitivity_y).build(world),
@@ -149,7 +147,10 @@ impl Component for CreativeMovementControlTag {
 /// * `T`: This are the keys the `InputHandler` is using for axes and actions. Often, this is a `StringBindings`.
 #[derive(Debug, SystemDesc)]
 #[system_desc(name(CreativeMovementSystemDesc))]
-pub struct CreativeMovementSystem<T> where T: BindingTypes {
+pub struct CreativeMovementSystem<T>
+where
+    T: BindingTypes,
+{
     speed: f32,
     side_input_axis: Option<T::Axis>,
     up_input_axis: Option<T::Axis>,
@@ -157,7 +158,6 @@ pub struct CreativeMovementSystem<T> where T: BindingTypes {
 }
 
 impl<'a, T: BindingTypes> System<'a> for CreativeMovementSystem<T> {
-
     type SystemData = (
         Read<'a, Time>,
         WriteStorage<'a, Transform>,
@@ -187,7 +187,6 @@ impl<'a, T: BindingTypes> System<'a> for CreativeMovementSystem<T> {
             }
         }
     }
-
 }
 
 // endregion
@@ -218,41 +217,35 @@ pub struct MouseRotationSystemDesc {
 }
 
 impl MouseRotationSystemDesc {
-
     fn new(sensitivity_x: f32, sensitivity_y: f32) -> Self {
-        MouseRotationSystemDesc { sensitivity_x, sensitivity_y }
+        MouseRotationSystemDesc {
+            sensitivity_x,
+            sensitivity_y,
+        }
     }
-
 }
 
 impl<'a, 'b> SystemDesc<'a, 'b, MouseRotationSystem> for MouseRotationSystemDesc {
-
     fn build(self, world: &mut World) -> MouseRotationSystem {
         <MouseRotationSystem as System<'_>>::SystemData::setup(world);
 
-        let reader_id = world
-            .fetch_mut::<EventChannel<Event>>()
-            .register_reader();
+        let reader_id = world.fetch_mut::<EventChannel<Event>>().register_reader();
 
         MouseRotationSystem::new(self.sensitivity_x, self.sensitivity_y, reader_id)
     }
-
 }
 
 impl MouseRotationSystem {
-
     pub fn new(sensitivity_x: f32, sensitivity_y: f32, event_reader: ReaderId<Event>) -> Self {
         MouseRotationSystem {
             sensitivity_x,
             sensitivity_y,
-            event_reader
+            event_reader,
         }
     }
-
 }
 
 impl<'a> System<'a> for MouseRotationSystem {
-
     type SystemData = (
         Read<'a, EventChannel<Event>>,
         WriteStorage<'a, Transform>,
@@ -264,27 +257,23 @@ impl<'a> System<'a> for MouseRotationSystem {
     fn run(&mut self, (events, mut transform, tag, focus, hide): Self::SystemData) {
         let focused = focus.is_focused;
         for event in events.read(&mut self.event_reader) {
-            if !focused || !hide.hide { continue; }
+            if !focused || !hide.hide {
+                continue;
+            }
             guard!(let Event::DeviceEvent { ref event, .. } = *event else { continue });
             guard!(let DeviceEvent::MouseMotion { delta: (x, y) } = *event else { continue });
 
             for (transform, _) in (&mut transform, &tag).join() {
-                transform.append_rotation_x_axis(
-                    (-(y as f32) * self.sensitivity_y).to_radians(),
-                );
-                transform.prepend_rotation_y_axis(
-                    (-(x as f32) * self.sensitivity_x).to_radians(),
-                );
+                transform.append_rotation_x_axis((-(y as f32) * self.sensitivity_y).to_radians());
+                transform.prepend_rotation_y_axis((-(x as f32) * self.sensitivity_x).to_radians());
                 let angles = transform.euler_angles();
                 let z = angles.2;
                 let mut x = angles.0;
                 if z > -FRAC_PI_2 && z <= FRAC_PI_2 {
                     x = x.max(-FRAC_PI_2).min(FRAC_PI_2);
-                }
-                else if x < 0_f32 {
+                } else if x < 0_f32 {
                     x = x.max(-PI).min(-FRAC_PI_2)
-                } 
-                else {
+                } else {
                     x = x.max(FRAC_PI_2).min(PI);
                 }
                 transform.set_rotation_euler(x, angles.1, z);
@@ -293,5 +282,4 @@ impl<'a> System<'a> for MouseRotationSystem {
     }
 
     // endregion
-
 }

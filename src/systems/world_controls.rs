@@ -1,4 +1,4 @@
-use amethyst::core::{Transform};
+use amethyst::core::Transform;
 use amethyst::derive::SystemDesc;
 use amethyst::ecs::{Join, Read, ReadStorage, System, SystemData, WriteStorage};
 use amethyst::input::{InputHandler, StringBindings};
@@ -14,8 +14,5 @@ impl<'s> System<'s> for WorldControls {
         Read<'s, InputHandler<StringBindings>>,
     );
 
-    fn run(&mut self, (mut transforms, camera, input): Self::SystemData) {
-        
-    }
-
+    fn run(&mut self, (mut transforms, camera, input): Self::SystemData) {}
 }

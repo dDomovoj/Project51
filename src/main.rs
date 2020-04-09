@@ -42,6 +42,7 @@ fn main() -> Result<(), Error> {
         )?
         .with_bundle(
             CameraControlBundle::<StringBindings>::new()
+                .with_speed(3.0)
                 .with_sensitivity(0.1, 0.1)
                 .with_side_input_axis(Some(String::from("move_side")))
                 .with_forward_input_axis(Some(String::from("move_forward")))

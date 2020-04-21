@@ -1,18 +1,3 @@
-// use amethyst::renderer::pass::PbrPassDef;
-
-use amethyst::renderer::{
-    batch::{GroupIterator, OrderedTwoLevelBatch, TwoLevelBatch},
-    mtl::{FullTextureSet, Material, StaticTextureSet, TexAlbedo, TexEmission},
-    pipeline::{PipelineDescBuilder, PipelinesBuilder},
-    pod::{SkinnedVertexArgs, VertexArgs},
-    resources::Tint,
-    //     skinning::{JointCombined, JointTransforms},
-    submodules::{DynamicVertexBuffer, EnvironmentSub, MaterialId, MaterialSub, SkinningSub},
-    transparent::Transparent,
-    types::{Backend, Mesh},
-    util,
-    visibility::{Visibility, VisibilitySortingSystem},
-};
 use amethyst::assets::{AssetStorage, Handle};
 use amethyst::core::{
     ecs::{Join, Read, ReadExpect, ReadStorage, SystemData},
@@ -21,21 +6,30 @@ use amethyst::core::{
 };
 use amethyst::renderer::bundle::Target;
 use amethyst::renderer::rendy::{
-    hal::pso::ShaderStageFlags, 
-    command::{QueueId, RenderPassEncoder},  
+    command::{QueueId, RenderPassEncoder},
     factory::Factory,
     graph::{
         render::{PrepareResult, RenderGroup, RenderGroupDesc},
         GraphContext, NodeBuffer, NodeImage,
     },
+    hal::pso::ShaderStageFlags,
     hal::{self, device::Device, pso},
-    shader::{Shader, SpirvShader},
     mesh::{AsVertex, Normal, Position, Tangent, TexCoord, VertexFormat},
+    shader::{Shader, SpirvShader},
 };
-use std::{
-    marker::PhantomData,
-    include_bytes,
+use amethyst::renderer::{
+    batch::{GroupIterator, OrderedTwoLevelBatch, TwoLevelBatch},
+    mtl::{FullTextureSet, Material, StaticTextureSet, TexAlbedo, TexEmission},
+    pipeline::{PipelineDescBuilder, PipelinesBuilder},
+    pod::VertexArgs,
+    resources::Tint,
+    submodules::{DynamicVertexBuffer, EnvironmentSub, MaterialId, MaterialSub, SkinningSub},
+    transparent::Transparent,
+    types::{Backend, Mesh},
+    util,
+    visibility::{Visibility, VisibilitySortingSystem},
 };
+use std::{include_bytes, marker::PhantomData};
 
 use derivative::Derivative;
 use smallvec::SmallVec;
@@ -54,15 +48,13 @@ use smallvec::SmallVec;
 
 // region - Shaders
 
-use std::path::PathBuf;
 use shaderc::{ShaderKind, SourceLanguage};
+use std::path::PathBuf;
 
 use amethyst::{
     core::ecs::{DispatcherBuilder, World},
     error::Error,
-    renderer::{
-        bundle::{RenderOrder, RenderPlan, RenderPlugin},
-    },
+    renderer::bundle::{RenderOrder, RenderPlan, RenderPlugin},
 };
 
 lazy_static::lazy_static! {
@@ -134,9 +126,6 @@ impl IRenderPassDef for CustomPassDef {
     fn vertex_shader() -> &'static SpirvShader {
         &VERTEX
     }
-    // fn vertex_skinned_shader() -> &'static SpirvShader {
-    //     &super::POS_NORM_TANG_TEX_SKIN_VERTEX
-    // }
     fn fragment_shader() -> &'static SpirvShader {
         &FRAGMENT
     }
@@ -148,15 +137,6 @@ impl IRenderPassDef for CustomPassDef {
             TexCoord::vertex(),
         ]
     }
-    // fn skinned_format() -> Vec<VertexFormat> {
-    //     vec![
-    //         Position::vertex(),
-    //         Normal::vertex(),
-    //         Tangent::vertex(),
-    //         TexCoord::vertex(),
-    //         JointCombined::vertex(),
-    //     ]
-    // }
 }
 
 /// Describes a Custom (PBR) 3d Pass with lighting
@@ -176,7 +156,6 @@ pub type DrawCustom3DTransparent<B> = BaseDrawTransparent<B, CustomPassDef>;
 #[derivative(Default(bound = ""), Debug(bound = ""))]
 pub struct BaseRender<D: IRenderPassDef> {
     target: Target,
-    // skinning: bool,
     marker: std::marker::PhantomData<D>,
 }
 
@@ -186,19 +165,11 @@ impl<D: IRenderPassDef> BaseRender<D> {
         self.target = target;
         self
     }
-
-    // /// Enable rendering for skinned meshes.
-    // ///
-    // /// NOTE: You must register `VertexSkinningBundle` yourself.
-    // pub fn with_skinning(mut self) -> Self {
-    //     self.skinning = true;
-    //     self
-    // }
 }
 
 impl<B: Backend, D: IRenderPassDef> RenderPlugin<B> for BaseRender<D> {
     fn on_build<'a, 'b>(
-        &mut self, world: &mut World, builder: &mut DispatcherBuilder<'a, 'b>,
+        &mut self, _world: &mut World, builder: &mut DispatcherBuilder<'a, 'b>,
     ) -> Result<(), Error> {
         builder.add(VisibilitySortingSystem::new(), "visibility_system", &[]);
         Ok(())
@@ -207,19 +178,11 @@ impl<B: Backend, D: IRenderPassDef> RenderPlugin<B> for BaseRender<D> {
     fn on_plan(
         &mut self, plan: &mut RenderPlan<B>, _factory: &mut Factory<B>, _world: &World,
     ) -> Result<(), Error> {
-        // let skinning = self.skinning;
         plan.extend_target(self.target, move |ctx| {
-            ctx.add(
-                RenderOrder::Opaque,
-                BaseDrawDesc::<B, D>::new()
-                    // .with_skinning(skinning)
-                    .builder(),
-            )?;
+            ctx.add(RenderOrder::Opaque, BaseDrawDesc::<B, D>::new().builder())?;
             ctx.add(
                 RenderOrder::Transparent,
-                BaseDrawTransparentDesc::<B, D>::new()
-                    // .with_skinning(skinning)
-                    .builder(),
+                BaseDrawTransparentDesc::<B, D>::new().builder(),
             )?;
             Ok(())
         });
@@ -229,7 +192,7 @@ impl<B: Backend, D: IRenderPassDef> RenderPlugin<B> for BaseRender<D> {
 
 // endregion
 
-// region - Base 3D
+// region - IRenderPassDef
 
 /// Define drawing opaque 3d meshes with specified shaders and texture set
 pub trait IRenderPassDef: 'static + std::fmt::Debug + Send + Sync {
@@ -242,24 +205,19 @@ pub trait IRenderPassDef: 'static + std::fmt::Debug + Send + Sync {
     /// Returns the vertex `SpirvShader` which will be used for this pass
     fn vertex_shader() -> &'static SpirvShader;
 
-    // /// Returns the vertex `SpirvShader` which will be used for this pass on skinned meshes
-    // fn vertex_skinned_shader() -> &'static SpirvShader;
-
     /// Returns the fragment `SpirvShader` which will be used for this pass
     fn fragment_shader() -> &'static SpirvShader;
 
     /// Returns the `VertexFormat` of this pass
     fn base_format() -> Vec<VertexFormat>;
-
-    // /// Returns the `VertexFormat` of this pass for skinned meshes
-    // fn skinned_format() -> Vec<VertexFormat>;
 }
+
+// region - BaseDrawDesc
 
 /// Draw opaque 3d meshes with specified shaders and texture set
 #[derive(Clone, Derivative)]
 #[derivative(Debug(bound = ""), Default(bound = ""))]
 pub struct BaseDrawDesc<B: Backend, T: IRenderPassDef> {
-    // skinning: bool,
     marker: PhantomData<(B, T)>,
 }
 
@@ -268,20 +226,6 @@ impl<B: Backend, T: IRenderPassDef> BaseDrawDesc<B, T> {
     pub fn new() -> Self {
         Default::default()
     }
-
-    // /// Create pass in with vertex skinning enabled
-    // pub fn skinned() -> Self {
-    //     Self {
-    //         skinning: true,
-    //         marker: PhantomData,
-    //     }
-    // }
-
-    // /// Create pass in with vertex skinning enabled if true is passed
-    // pub fn with_skinning(mut self, skinned: bool) -> Self {
-    //     self.skinning = skinned;
-    //     self
-    // }
 }
 
 impl<B: Backend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawDesc<B, T> {
@@ -300,10 +244,7 @@ impl<B: Backend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawDesc<B
             ],
         )?;
         let materials = MaterialSub::new(factory)?;
-        let skinning = SkinningSub::new(factory)?;
-
         let mut vertex_format_base = T::base_format();
-        // let mut vertex_format_skinned = T::skinned_format();
 
         let (mut pipelines, pipeline_layout) = build_pipelines::<B, T>(
             factory,
@@ -311,36 +252,28 @@ impl<B: Backend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawDesc<B
             framebuffer_width,
             framebuffer_height,
             &vertex_format_base,
-            // &vertex_format_skinned,
-            // self.skinning,
             false,
-            vec![
-                env.raw_layout(),
-                materials.raw_layout(),
-                // skinning.raw_layout(),
-            ],
+            vec![env.raw_layout(), materials.raw_layout()],
         )?;
 
         vertex_format_base.sort();
-        // vertex_format_skinned.sort();
 
         Ok(Box::new(BaseDraw::<B, T> {
             pipeline_basic: pipelines.remove(0),
-            // pipeline_skinned: pipelines.pop(),
             pipeline_layout,
             static_batches: Default::default(),
-            // skinned_batches: Default::default(),
             vertex_format_base,
-            // vertex_format_skinned,
             env,
             materials,
-            // skinning,
             models: DynamicVertexBuffer::new(),
-            // skinned_models: DynamicVertexBuffer::new(),
             marker: PhantomData,
         }))
     }
 }
+
+// endregion
+
+// region - BaseDraw
 
 /// Base implementation of a 3D render pass which can be consumed by actual 3D render passes,
 /// such as [pass::pbr::DrawPbr]
@@ -372,13 +305,12 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
         let (
             mesh_storage,
             visibility,
-            transparent,
-            hiddens,
-            hiddens_prop,
+            _transparent,
+            _hiddens,
+            _hiddens_prop,
             meshes,
             materials,
             transforms,
-            // joints,
             tints,
         ) = <(
             Read<'_, AssetStorage<Mesh>>,
@@ -389,7 +321,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
             ReadStorage<'_, Handle<Mesh>>,
             ReadStorage<'_, Handle<Material>>,
             ReadStorage<'_, Transform>,
-            // ReadStorage<'_, JointTransforms>,
             ReadStorage<'_, Tint>,
         )>::fetch(resources);
 
@@ -398,22 +329,16 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
         self.materials.maintain();
 
         self.static_batches.clear_inner();
-        // self.skinned_batches.clear_inner();
 
         let materials_ref = &mut self.materials;
-        // let skinning_ref = &mut self.skinning;
         let statics_ref = &mut self.static_batches;
-        // let skinned_ref = &mut self.skinned_batches;
 
         let static_input = || ((&materials, &meshes, &transforms, tints.maybe()));
-        // let static_input = || ((&materials, &meshes, &transforms, tints.maybe()), !&joints);
-        // let skinned_input = || (&materials, &meshes, &transforms, tints.maybe(), &joints);
         {
             // profile_scope_impl!("prepare");
             (static_input(), &visibility.visible_unordered)
                 .join()
                 .map(|((mat, mesh, tform, tint), _)| {
-                // .map(|(((mat, mesh, tform, tint), _), _)| {
                     ((mat, mesh.id()), VertexArgs::from_object_data(tform, tint))
                 })
                 .for_each_group(|(mat, mesh_id), data| {
@@ -424,35 +349,10 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
                     }
                 });
         }
-        // if self.pipeline_skinned.is_some() {
-        //     profile_scope_impl!("prepare_skinning");
-
-        //     (skinned_input(), &visibility.visible_unordered)
-        //         .join()
-        //         .map(|((mat, mesh, tform, tint, joints), _)| {
-        //             (
-        //                 (mat, mesh.id()),
-        //                 SkinnedVertexArgs::from_object_data(
-        //                     tform,
-        //                     tint,
-        //                     skinning_ref.insert(joints),
-        //                 ),
-        //             )
-        //         })
-        //         .for_each_group(|(mat, mesh_id), data| {
-        //             if mesh_storage.contains_id(mesh_id) {
-        //                 if let Some((mat, _)) = materials_ref.insert(factory, resources, mat) {
-        //                     skinned_ref.insert(mat, mesh_id, data.drain(..));
-        //                 }
-        //             }
-        //         });
-        // };
-
         {
             // profile_scope_impl!("write");
 
             self.static_batches.prune();
-            // self.skinned_batches.prune();
 
             self.models.write(
                 factory,
@@ -460,14 +360,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
                 self.static_batches.count() as u64,
                 self.static_batches.data(),
             );
-
-            // self.skinned_models.write(
-            //     factory,
-            //     index,
-            //     self.skinned_batches.count() as u64,
-            //     self.skinned_batches.data(),
-            // );
-            // self.skinning.commit(factory, index);
         }
         PrepareResult::DrawRecord
     }
@@ -480,7 +372,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
 
         let mesh_storage = <Read<'_, AssetStorage<Mesh>>>::fetch(resources);
         let models_loc = self.vertex_format_base.len() as u32;
-        // let skin_models_loc = self.vertex_format_skinned.len() as u32;
 
         encoder.bind_graphics_pipeline(&self.pipeline_basic);
         self.env.bind(index, &self.pipeline_layout, 0, &mut encoder);
@@ -509,41 +400,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
                 }
             }
         }
-
-        // if let Some(pipeline_skinned) = self.pipeline_skinned.as_ref() {
-        //     encoder.bind_graphics_pipeline(pipeline_skinned);
-
-        //     if self
-        //         .skinned_models
-        //         .bind(index, skin_models_loc, 0, &mut encoder)
-        //     {
-        //         self.skinning
-        //             .bind(index, &self.pipeline_layout, 2, &mut encoder);
-
-        //         let mut instances_drawn = 0;
-        //         for (&mat_id, batches) in self.skinned_batches.iter() {
-        //             if self.materials.loaded(mat_id) {
-        //                 self.materials
-        //                     .bind(&self.pipeline_layout, 1, mat_id, &mut encoder);
-        //                 for (mesh_id, batch_data) in batches {
-        //                     debug_assert!(mesh_storage.contains_id(*mesh_id));
-        //                     if let Some(mesh) = B::unwrap_mesh(unsafe {
-        //                         mesh_storage.get_by_id_unchecked(*mesh_id)
-        //                     }) {
-        //                         mesh.bind_and_draw(
-        //                             0,
-        //                             &self.vertex_format_skinned,
-        //                             instances_drawn..instances_drawn + batch_data.len() as u32,
-        //                             &mut encoder,
-        //                         )
-        //                         .unwrap();
-        //                     }
-        //                     instances_drawn += batch_data.len() as u32;
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
     }
 
     fn dispose(mut self: Box<Self>, factory: &mut Factory<B>, _aux: &World) {
@@ -552,9 +408,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
             factory
                 .device()
                 .destroy_graphics_pipeline(self.pipeline_basic);
-            // if let Some(pipeline) = self.pipeline_skinned.take() {
-            //     factory.device().destroy_graphics_pipeline(pipeline);
-            // }
             factory
                 .device()
                 .destroy_pipeline_layout(self.pipeline_layout);
@@ -562,11 +415,14 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
     }
 }
 
+// endregion
+
+// region - BaseDrawTransparentDesc
+
 /// Draw transparent mesh with physically based lighting
 #[derive(Clone, Derivative)]
 #[derivative(Debug(bound = ""), Default(bound = ""))]
 pub struct BaseDrawTransparentDesc<B: Backend, T: IRenderPassDef> {
-    // skinning: bool,
     marker: PhantomData<(B, T)>,
 }
 
@@ -574,24 +430,9 @@ impl<B: Backend, T: IRenderPassDef> BaseDrawTransparentDesc<B, T> {
     /// Create pass in default configuration
     pub fn new() -> Self {
         Self {
-            // skinning: false,
             marker: PhantomData,
         }
     }
-
-    // /// Create pass in with vertex skinning enabled
-    // pub fn skinned() -> Self {
-    //     Self {
-    //         skinning: true,
-    //         marker: PhantomData,
-    //     }
-    // }
-
-    // /// Create pass in with vertex skinning enabled if true is passed
-    // pub fn with_skinning(mut self, skinned: bool) -> Self {
-    //     self.skinning = skinned;
-    //     self
-    // }
 }
 
 impl<B: Backend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawTransparentDesc<B, T> {
@@ -612,7 +453,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawTransp
         let skinning = SkinningSub::new(factory)?;
 
         let mut vertex_format_base = T::base_format();
-        // let mut vertex_format_skinned = T::skinned_format();
 
         let (mut pipelines, pipeline_layout) = build_pipelines::<B, T>(
             factory,
@@ -620,54 +460,41 @@ impl<B: Backend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawTransp
             framebuffer_width,
             framebuffer_height,
             &vertex_format_base,
-            // &vertex_format_skinned,
-            // self.skinning,
             true,
-            vec![
-                env.raw_layout(),
-                materials.raw_layout(),
-                // skinning.raw_layout(),
-            ],
+            vec![env.raw_layout(), materials.raw_layout()],
         )?;
 
         vertex_format_base.sort();
-        // vertex_format_skinned.sort();
 
         Ok(Box::new(BaseDrawTransparent::<B, T> {
             pipeline_basic: pipelines.remove(0),
-            // pipeline_skinned: pipelines.pop(),
             pipeline_layout,
             static_batches: Default::default(),
-            // skinned_batches: Default::default(),
             vertex_format_base,
-            // vertex_format_skinned,
             env,
             materials,
-            // skinning,
             models: DynamicVertexBuffer::new(),
-            // skinned_models: DynamicVertexBuffer::new(),
             change: Default::default(),
             marker: PhantomData,
         }))
     }
 }
 
+// endregion
+
+// region - BaseDrawTransparent
+
 /// Draw transparent mesh with physically based lighting
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct BaseDrawTransparent<B: Backend, T: IRenderPassDef> {
     pipeline_basic: B::GraphicsPipeline,
-    // pipeline_skinned: Option<B::GraphicsPipeline>,
     pipeline_layout: B::PipelineLayout,
     static_batches: OrderedTwoLevelBatch<MaterialId, u32, VertexArgs>,
-    // skinned_batches: OrderedTwoLevelBatch<MaterialId, u32, SkinnedVertexArgs>,
     vertex_format_base: Vec<VertexFormat>,
-    // vertex_format_skinned: Vec<VertexFormat>,
     env: EnvironmentSub<B>,
     materials: MaterialSub<B, FullTextureSet>,
-    // skinning: SkinningSub<B>,
     models: DynamicVertexBuffer<B, VertexArgs>,
-    // skinned_models: DynamicVertexBuffer<B, SkinnedVertexArgs>,
     change: util::ChangeDetection,
     marker: PhantomData<T>,
 }
@@ -679,7 +506,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparen
     ) -> PrepareResult {
         // profile_scope_impl!("prepare transparent");
 
-        // let (mesh_storage, visibility, meshes, materials, transforms, joints, tints) =
         let (mesh_storage, visibility, meshes, materials, transforms, tints) =
             <(
                 Read<'_, AssetStorage<Mesh>>,
@@ -687,7 +513,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparen
                 ReadStorage<'_, Handle<Mesh>>,
                 ReadStorage<'_, Handle<Material>>,
                 ReadStorage<'_, Transform>,
-                // ReadStorage<'_, JointTransforms>,
                 ReadStorage<'_, Tint>,
             )>::fetch(resources);
 
@@ -696,16 +521,12 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparen
         self.materials.maintain();
 
         self.static_batches.swap_clear();
-        // self.skinned_batches.swap_clear();
 
         let materials_ref = &mut self.materials;
-        // let skinning_ref = &mut self.skinning;
         let statics_ref = &mut self.static_batches;
-        // let skinned_ref = &mut self.skinned_batches;
         let mut changed = false;
 
         let mut joined = (&materials, &meshes, &transforms, tints.maybe()).join();
-        // let mut joined = ((&materials, &meshes, &transforms, tints.maybe()), !&joints).join();
         visibility
             .visible_ordered
             .iter()
@@ -723,35 +544,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparen
                 }
             });
 
-        // if self.pipeline_skinned.is_some() {
-        //     let mut joined = (&materials, &meshes, &transforms, tints.maybe(), &joints).join();
-
-        //     visibility
-        //         .visible_ordered
-        //         .iter()
-        //         .filter_map(|e| joined.get_unchecked(e.id()))
-        //         .map(|(mat, mesh, tform, tint, joints)| {
-        //             (
-        //                 (mat, mesh.id()),
-        //                 SkinnedVertexArgs::from_object_data(
-        //                     tform,
-        //                     tint,
-        //                     skinning_ref.insert(joints),
-        //                 ),
-        //             )
-        //         })
-        //         .for_each_group(|(mat, mesh_id), data| {
-        //             if mesh_storage.contains_id(mesh_id) {
-        //                 if let Some((mat, this_changed)) =
-        //                     materials_ref.insert(factory, resources, mat)
-        //                 {
-        //                     changed = changed || this_changed;
-        //                     skinned_ref.insert(mat, mesh_id, data.drain(..));
-        //                 }
-        //             }
-        //         });
-        // }
-
         self.models.write(
             factory,
             index,
@@ -759,17 +551,7 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparen
             Some(self.static_batches.data()),
         );
 
-        // self.skinned_models.write(
-        //     factory,
-        //     index,
-        //     self.skinned_batches.count() as u64,
-        //     Some(self.skinned_batches.data()),
-        // );
-
-        // self.skinning.commit(factory, index);
-
         changed = changed || self.static_batches.changed();
-        // changed = changed || self.skinned_batches.changed();
 
         self.change.prepare_result(index, changed)
     }
@@ -785,7 +567,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparen
         let encoder = &mut encoder;
 
         let models_loc = self.vertex_format_base.len() as u32;
-        // let skin_models_loc = self.vertex_format_skinned.len() as u32;
 
         encoder.bind_graphics_pipeline(&self.pipeline_basic);
         self.env.bind(index, layout, 0, encoder);
@@ -817,39 +598,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparen
                 }
             }
         }
-
-        // if let Some(pipeline_skinned) = self.pipeline_skinned.as_ref() {
-        //     encoder.bind_graphics_pipeline(pipeline_skinned);
-
-        //     if self.skinned_models.bind(index, skin_models_loc, 0, encoder) {
-        //         self.skinning.bind(index, layout, 2, encoder);
-        //         for (&mat, batches) in self.skinned_batches.iter() {
-        //             if self.materials.loaded(mat) {
-        //                 self.materials.bind(layout, 1, mat, encoder);
-        //                 for (mesh, range) in batches {
-        //                     debug_assert!(mesh_storage.contains_id(*mesh));
-        //                     if let Some(mesh) =
-        //                         B::unwrap_mesh(unsafe { mesh_storage.get_by_id_unchecked(*mesh) })
-        //                     {
-        //                         if let Err(error) = mesh.bind_and_draw(
-        //                             0,
-        //                             &self.vertex_format_skinned,
-        //                             range.clone(),
-        //                             encoder,
-        //                         ) {
-        //                             log::warn!(
-        //                                 "Trying to draw a skinned mesh that lacks {:?} vertex attributes. Pass {} requires attributes {:?}.",
-        //                                 error.not_found.attributes,
-        //                                 T::NAME,
-        //                                 T::skinned_format(),
-        //                             );
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
     }
 
     fn dispose(mut self: Box<Self>, factory: &mut Factory<B>, _aux: &World) {
@@ -857,9 +605,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparen
             factory
                 .device()
                 .destroy_graphics_pipeline(self.pipeline_basic);
-            // if let Some(pipeline) = self.pipeline_skinned.take() {
-            //     factory.device().destroy_graphics_pipeline(pipeline);
-            // }
             factory
                 .device()
                 .destroy_pipeline_layout(self.pipeline_layout);
@@ -867,10 +612,17 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparen
     }
 }
 
+// endregion
+
+// region - Common
+
 fn build_pipelines<B: Backend, T: IRenderPassDef>(
-    factory: &Factory<B>, subpass: hal::pass::Subpass<'_, B>, framebuffer_width: u32,
-    framebuffer_height: u32, vertex_format_base: &[VertexFormat],
-    // vertex_format_skinned: &[VertexFormat], skinning: bool, 
+    factory: &Factory<B>,
+    subpass: hal::pass::Subpass<'_, B>,
+    framebuffer_width: u32,
+    framebuffer_height: u32,
+    vertex_format_base: &[VertexFormat],
+    // vertex_format_skinned: &[VertexFormat], skinning: bool,
     transparent: bool,
     layouts: Vec<&B::DescriptorSetLayout>,
 ) -> Result<(Vec<B::GraphicsPipeline>, B::PipelineLayout), failure::Error> {
@@ -915,37 +667,6 @@ fn build_pipelines<B: Backend, T: IRenderPassDef>(
         }]);
 
     let pipelines = {
-    // let pipelines = if skinning {
-    //     let shader_vertex_skinned = unsafe { T::vertex_skinned_shader().module(factory).unwrap() };
-
-    //     let vertex_desc = vertex_format_skinned
-    //         .iter()
-    //         .map(|f| (f.clone(), pso::VertexInputRate::Vertex))
-    //         .chain(Some((
-    //             SkinnedVertexArgs::vertex(),
-    //             pso::VertexInputRate::Instance(1),
-    //         )))
-    //         .collect::<Vec<_>>();
-
-    //     let pipe = PipelinesBuilder::new()
-    //         .with_pipeline(pipe_desc.clone())
-    //         .with_child_pipeline(
-    //             0,
-    //             pipe_desc
-    //                 .with_vertex_desc(&vertex_desc)
-    //                 .with_shaders(util::simple_shader_set(
-    //                     &shader_vertex_skinned,
-    //                     Some(&shader_fragment),
-    //                 )),
-    //         )
-    //         .build(factory, None);
-
-    //     unsafe {
-    //         factory.destroy_shader_module(shader_vertex_skinned);
-    //     }
-
-    //     pipe
-    // } else {
         PipelinesBuilder::new()
             .with_pipeline(pipe_desc)
             .build(factory, None)
@@ -966,5 +687,7 @@ fn build_pipelines<B: Backend, T: IRenderPassDef>(
         Ok(pipelines) => Ok((pipelines, pipeline_layout)),
     }
 }
+
+// endregion
 
 // endregion

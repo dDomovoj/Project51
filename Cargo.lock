@@ -81,7 +81,7 @@ dependencies = [
  "amethyst_utils",
  "amethyst_window",
  "crossbeam-channel 0.4.2",
- "derivative",
+ "derivative 1.0.3",
  "dirs",
  "failure",
  "fern",
@@ -108,7 +108,7 @@ dependencies = [
  "amethyst_error",
  "amethyst_rendy",
  "amethyst_ui",
- "derivative",
+ "derivative 1.0.3",
  "fnv",
  "itertools",
  "log",
@@ -126,7 +126,7 @@ dependencies = [
  "amethyst_derive",
  "amethyst_error",
  "crossbeam-queue 0.1.2",
- "derivative",
+ "derivative 1.0.3",
  "derive-new",
  "erased-serde",
  "err-derive",
@@ -155,7 +155,7 @@ dependencies = [
  "log",
  "rodio",
  "serde",
- "smallvec 1.2.0",
+ "smallvec 1.3.0",
 ]
 
 [[package]]
@@ -196,7 +196,7 @@ dependencies = [
  "alga_derive",
  "amethyst_error",
  "approx 0.3.2",
- "derivative",
+ "derivative 1.0.3",
  "derive-new",
  "fnv",
  "getset",
@@ -242,11 +242,11 @@ dependencies = [
  "amethyst_core",
  "amethyst_error",
  "amethyst_window",
- "derivative",
+ "derivative 1.0.3",
  "derive-new",
  "fnv",
  "serde",
- "smallvec 1.2.0",
+ "smallvec 1.3.0",
  "winit",
 ]
 
@@ -290,7 +290,7 @@ dependencies = [
  "amethyst_error",
  "amethyst_window",
  "approx 0.3.2",
- "derivative",
+ "derivative 1.0.3",
  "derive-new",
  "failure",
  "fnv",
@@ -302,7 +302,7 @@ dependencies = [
  "rendy",
  "ron",
  "serde",
- "smallvec 1.2.0",
+ "smallvec 1.3.0",
  "static_assertions 1.1.0",
 ]
 
@@ -321,7 +321,7 @@ dependencies = [
  "amethyst_rendy",
  "amethyst_window",
  "clipboard",
- "derivative",
+ "derivative 1.0.3",
  "derive-new",
  "failure",
  "fnv",
@@ -334,7 +334,7 @@ dependencies = [
  "rand 0.7.3",
  "ron",
  "serde",
- "smallvec 1.2.0",
+ "smallvec 1.3.0",
  "unicode-normalization",
  "unicode-segmentation",
  "winit",
@@ -994,6 +994,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "derivative"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb582b60359da160a9477ee80f15c8d784c477e69c217ef2cdd4169c24ea380f"
+dependencies = [
+ "proc-macro2 1.0.8",
+ "quote 1.0.2",
+ "syn 1.0.14",
+]
+
+[[package]]
 name = "derive-new"
 version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1176,7 +1187,7 @@ dependencies = [
  "intl-memoizer",
  "intl_pluralrules",
  "rental",
- "smallvec 1.2.0",
+ "smallvec 1.3.0",
  "unic-langid",
 ]
 
@@ -2141,7 +2152,7 @@ dependencies = [
  "cloudabi",
  "libc",
  "redox_syscall",
- "smallvec 1.2.0",
+ "smallvec 1.3.0",
  "winapi",
 ]
 
@@ -2333,8 +2344,15 @@ name = "project51"
 version = "0.0.1"
 dependencies = [
  "amethyst",
+ "derivative 2.1.1",
+ "derive-new",
+ "failure",
  "guard",
+ "lazy_static",
+ "log",
  "serde",
+ "shaderc",
+ "smallvec 1.3.0",
 ]
 
 [[package]]
@@ -2694,7 +2712,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94a32282d82bd3ef04c15edf3d6762a8bea38a6575490344188a9bbb110c6c6a"
 dependencies = [
- "derivative",
+ "derivative 1.0.3",
  "failure",
  "gfx-hal",
  "relevant",
@@ -2709,7 +2727,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca7bcc3cb86a7945ecc5f0d7121e47a0b5979c3c57d3a5e6facc8738338651d8"
 dependencies = [
- "derivative",
+ "derivative 1.0.3",
  "failure",
  "gfx-hal",
  "log",
@@ -2723,7 +2741,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a733600fa7aa962919999ffe20bbf3f9c1c36230fedd9abf9e78caffe9db7093"
 dependencies = [
- "derivative",
+ "derivative 1.0.3",
  "either",
  "failure",
  "gfx-hal",
@@ -2747,7 +2765,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "417485444f959d67f3b1ec5ad7de340e389548ab404df0bb809bc821128660d3"
 dependencies = [
- "derivative",
+ "derivative 1.0.3",
  "either",
  "failure",
  "gfx-hal",
@@ -2769,7 +2787,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b34a289735fd2a15482aaf9fb5ba824678768dd985e7d17545a7354836d5ebd4"
 dependencies = [
  "bitflags",
- "derivative",
+ "derivative 1.0.3",
  "either",
  "failure",
  "gfx-hal",
@@ -2796,7 +2814,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1cf6b3fc8a012b69062419caf086d35f83d9af57bf30a6971691731b4816a47f"
 dependencies = [
  "colorful",
- "derivative",
+ "derivative 1.0.3",
  "failure",
  "gfx-hal",
  "hibitset",
@@ -2834,7 +2852,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3c94df60f828ae6e0c9f50bf0faeaf0125ef728ec66029c25d59c91fd6d41ee"
 dependencies = [
  "crossbeam-channel 0.3.9",
- "derivative",
+ "derivative 1.0.3",
  "failure",
  "gfx-hal",
  "log",
@@ -2851,7 +2869,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6dd3a577f3b58cd2ea98f4480d32493d80f8c3aaf1852388efec58c33d3ac222"
 dependencies = [
- "derivative",
+ "derivative 1.0.3",
  "failure",
  "gfx-hal",
  "log",
@@ -2867,7 +2885,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "911dbc17c26ec93c8cfecf6a82e5e288d503183e46ac57c7395826aea2bf259f"
 dependencies = [
- "derivative",
+ "derivative 1.0.3",
  "failure",
  "gfx-hal",
  "image 0.22.5",
@@ -2887,7 +2905,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "aa01882dc9f3f64684393724d0d49d2315b612eeeb029eded2181385d796c75f"
 dependencies = [
- "derivative",
+ "derivative 1.0.3",
  "gfx-backend-metal",
  "gfx-hal",
  "lazy_static",
@@ -2903,7 +2921,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9954dda560d8d5fbf619a46b0619aa6e0f990bd439ab974641bdbe99a5f9c93f"
 dependencies = [
- "derivative",
+ "derivative 1.0.3",
  "failure",
  "gfx-hal",
  "log",
@@ -3155,6 +3173,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "shaderc"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed344938df2d7fa3cc6bfb4af0b578f00f9b389d5fe7be0250fa657c442a8281"
+dependencies = [
+ "libc",
+ "shaderc-sys",
+]
+
+[[package]]
+name = "shaderc-sys"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30075c712b08798cb2b5e54e4434970a4a3a3a3e838b0642590c74605d3cc528"
+dependencies = [
+ "cmake",
+ "libc",
+]
+
+[[package]]
 name = "shlex"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3171,7 +3209,7 @@ dependencies = [
  "mopa",
  "rayon",
  "shred-derive",
- "smallvec 1.2.0",
+ "smallvec 1.3.0",
  "tynm",
 ]
 
@@ -3227,9 +3265,9 @@ dependencies = [
 
 [[package]]
 name = "smallvec"
-version = "1.2.0"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5c2fb2ec9bcd216a5b0d0ccf31ab17b5ed1d627960edff65bbe95d3ce221cefc"
+checksum = "05720e22615919e4734f6a99ceae50d00226c3c5aca406e102ebc33298214e0a"
 dependencies = [
  "serde",
 ]
@@ -3583,7 +3621,7 @@ version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5479532badd04e128284890390c1e876ef7a993d0570b3597ae43dfa1d59afa4"
 dependencies = [
- "smallvec 1.2.0",
+ "smallvec 1.3.0",
 ]
 
 [[package]]

@@ -9,16 +9,21 @@ use amethyst::{
         types::DefaultBackend,
         RenderingBundle,
     },
-    utils::application_root_dir,
+    utils::{
+        application_root_dir,
+    },
     Error,
-};
+};  
 
 mod bundles;
 mod game_start;
+mod render_pass;
 mod render_plugins;
 mod systems;
+mod block;
 
 use crate::render_plugins::RenderDebugLines;
+use crate::render_pass::Render3D;
 use crate::bundles::camera_control_bundle::CameraControlBundle;
 use crate::game_start::GameStart;
 
@@ -56,9 +61,10 @@ fn main() -> Result<(), Error> {
                     Srgb::new(0.82, 0.51, 0.50),
                     Srgb::new(0.18, 0.11, 0.85),
                 ))
-                .with_plugin(RenderShaded3D::default())
+                // .with_plugin(RenderPbr3D::default())
+                // .with_plugin(RenderShaded3D::default())
+                .with_plugin(Render3D::default())
                 .with_plugin(RenderDebugLines::default()),
-            // .with_plugin(RenderPbr3D::default()),
         )?;
 
     let mut game = Application::build(assets_dir, GameStart)?.build(game_data)?;

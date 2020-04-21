@@ -15,6 +15,7 @@ use amethyst::{
     error::Error,
     input::{get_input_axis_simple, BindingTypes, InputHandler},
     shrev::{EventChannel, ReaderId},
+    utils::auto_fov::{AutoFovSystem},
     winit::{DeviceEvent, Event},
 };
 use serde::{Deserialize, Serialize};
@@ -114,6 +115,11 @@ impl<'a, 'b, T: BindingTypes> SystemBundle<'a, 'b> for CameraControlBundle<T> {
             MouseRotationSystemDesc::new(self.sensitivity_x, self.sensitivity_y).build(world),
             "mouse_rotation",
             &[],
+        );
+        builder.add(
+            AutoFovSystem::new(), 
+            "auto_fov", 
+            &[]
         );
         builder.add(
             MouseFocusUpdateSystemDesc::default().build(world),

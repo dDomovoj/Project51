@@ -1,46 +1,49 @@
 // use std::path::PathBuf;
-use crate::bundles::camera_control_bundle::{MouseControlTag, CreativeMovementControlTag};
+use crate::block::{Block, Material};
+use crate::bundles::camera_control_bundle::{CreativeMovementControlTag, MouseControlTag};
 
 use amethyst::{
-    // assets::RonFormat,
-    // core::transform::TransformBundle,
-    // ecs::WorldExt,
     // assets::{AssetStorage, Loader, Handle},
     assets::{AssetLoaderSystemData, Handle, Loader},
     controls::HideCursor,
     core::{
-        transform::Transform,
         math::{Point2, Point3, UnitQuaternion, Vector2, Vector3},
+        transform::Transform,
     },
+    // assets::RonFormat,
+    // core::transform::TransformBundle,
+    ecs::{prelude::Write, EntityBuilder, WorldExt},
     error::Error,
     input::{is_key_down, is_mouse_button_down},
     prelude::*,
     renderer::{
         debug_drawing::{DebugLine, DebugLines, DebugLinesComponent, DebugLinesParams},
-        ImageFormat, Texture,
         light::{Light, PointLight, SunLight},
         // ImageFormat, SpriteRender, SpriteSheet, SpriteSheetFormat, Texture,
-        mtl::{Material, MaterialDefaults},
-        palette::{Srgb, Srgba, LinSrgba},
+        mtl::{Material as AmethystMaterial, MaterialDefaults},
+        palette::{LinSrgba, Srgb, Srgba},
         rendy::{
             mesh::{MeshBuilder, Normal, Position, Tangent, TexCoord},
-            texture::palette::{load_from_srgba, load_from_srgb, load_from_linear_rgba},
-            util::types::vertex::{PosTex, PosColor, Color},
+            texture::palette::{load_from_linear_rgba, load_from_srgb, load_from_srgba},
+            util::types::vertex::{Color, PosColor, PosTex},
         },
-        shape::{Shape},
-        types::{Mesh, MeshData},//, Texture},
+        resources::AmbientColor,
+        shape::Shape,
+        types::{Mesh, MeshData}, //, Texture},
         Camera,
+        ImageFormat,
+        Texture,
     },
+    utils::auto_fov::AutoFov,
     window::ScreenDimensions,
     winit::{MouseButton, VirtualKeyCode},
 };
 
-use std::f32::consts::{FRAC_PI_8, FRAC_PI_6};
+use std::f32::consts::{FRAC_PI_6, FRAC_PI_8};
 
 pub struct GameStart;
 
 impl SimpleState for GameStart {
-    
     // pub fn new(fonts_dir: PathBuf, audio_dir: PathBuf) -> Pong {
     //     Pong {
     //         ball_spawn_timer: None,
@@ -56,8 +59,9 @@ impl SimpleState for GameStart {
         // // `spritesheet` is the layout of the sprites on the image;
         // // `texture` is the pixel data.
         // self.sprite_sheet_handle.replace(load_sprite_sheet(world));
+
         spawn_axis(world);
-        spawn_block(world);
+        spawn_blocks(world);
         spawn_lights(world);
         initialize_camera(world);
 
@@ -65,7 +69,9 @@ impl SimpleState for GameStart {
         // ui::initialize_scoreboard(world, &self.fonts_dir);
     }
 
-    fn handle_event(&mut self, data: StateData<'_, GameData<'_, '_>>, event: StateEvent) -> SimpleTrans {
+    fn handle_event(
+        &mut self, data: StateData<'_, GameData<'_, '_>>, event: StateEvent,
+    ) -> SimpleTrans {
         let StateData { world, .. } = data;
         if let StateEvent::Window(event) = &event {
             if is_key_down(&event, VirtualKeyCode::Escape) {
@@ -84,7 +90,8 @@ impl SimpleState for GameStart {
 
 fn initialize_camera(world: &mut World) {
     let mut transform = Transform::default();
-    transform.set_translation_xyz(-1.5, 1.5, 3.0)
+    transform
+        .set_translation_xyz(-1.5, 1.5, 3.0)
         .append_rotation_y_axis(-FRAC_PI_6)
         .append_rotation_x_axis(-FRAC_PI_8);
 
@@ -92,11 +99,14 @@ fn initialize_camera(world: &mut World) {
         let dim = world.read_resource::<ScreenDimensions>();
         (dim.width(), dim.height())
     };
+
+    let auto_fov = AutoFov::new();
     world
         .create_entity()
         .with(Camera::standard_3d(width, height))
         .with(MouseControlTag)
         .with(CreativeMovementControlTag)
+        .with(auto_fov)
         .with(transform)
         .build();
 }
@@ -107,8 +117,12 @@ fn initialize_camera(world: &mut World) {
 
 // 1 -1 2
 fn spawn_lights(world: &mut World) {
+    // world.exec(|mut color: Write<'_, AmbientColor>| {
+    //     color.0 = Srgba::new(0.3, 0.3, 0.3, 1.0);
+    // });
+
     let light1: Light = PointLight {
-        intensity: 4.0,
+        intensity: 14.0,
         color: Srgb::new(1.0, 0.95, 0.9),
         ..PointLight::default()
     }
@@ -118,7 +132,7 @@ fn spawn_lights(world: &mut World) {
     light1_transform.set_translation_xyz(-4.0, 3.0, -6.0);
 
     let light2: Light = PointLight {
-        intensity: 5.0,
+        intensity: 15.0,
         color: Srgb::new(0.8, 0.9, 0.95),
         ..PointLight::default()
     }
@@ -128,7 +142,7 @@ fn spawn_lights(world: &mut World) {
     light2_transform.set_translation_xyz(2.0, 1.0, 1.0);
 
     let light3: Light = PointLight {
-        intensity: 3.0,
+        intensity: 13.0,
         color: Srgb::new(0.8, 1.0, 0.85),
         ..PointLight::default()
     }
@@ -176,103 +190,33 @@ fn spawn_axis(world: &mut World) {
     let z_axis_color = Srgba::new(0.0, 0.0, 1.0, 1.0);
     debug_lines.add_direction(origin, z_axis_direction, z_axis_color);
 
-    world
-        .create_entity()
-        .with(debug_lines)
-        .build();
+    world.create_entity().with(debug_lines).build();
 }
 
 // endregion
 
-// region - Mesh
+// region - Blocks
 
-fn spawn_block(world: &mut World) {
-    let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
-    let mesh = world.exec(|loader: AssetLoaderSystemData<Mesh>| {
-        loader.load_from_data(block_mesh(), (),)
-    });
-
-    let texture = world.exec(|loader: AssetLoaderSystemData<Texture>| {
-        loader.load(
-            "texture/grass_block_side.png",
-            ImageFormat::default(),
-            (),
-        )
-    });
-
-    let mat = world.exec(|loader: AssetLoaderSystemData<Material>| {
-        loader.load_from_data(
-            Material {
-                albedo: texture,
-                ..default_mat.clone()
-            },
-            (),
-        )
-    });
-
-    let trans = Transform::default();
-    world
-        .create_entity()
-        .with(mesh)
-        .with(mat)
-        .with(trans)
-        .build();
+fn spawn_blocks(world: &mut World) {
+    spawn_block(world, [0, 0, 0], Material::Grass);
+    // spawn_block(world, [1, 0, 0], Material::Crate);
+    // spawn_block(world, [1, -1, 0], Material::Crate);
+    // spawn_block(world, [1, 0, 1], Material::Grass);
+    // spawn_block(world, [1, -1, 1], Material::Crate);
+    // spawn_block(world, [0, -1, 0], Material::Dirt);
+    // spawn_block(world, [0, -1, 1], Material::Dirt);
 }
 
-#[rustfmt::skip]
-fn block_mesh() -> MeshData {
-    let v: [[f32; 3]; 8] = [
-        [-0.5, -0.5, 0.5], [-0.5, -0.5, -0.5], 
-        [0.5, -0.5, 0.5], [0.5, -0.5, -0.5],
-        [-0.5, 0.5, 0.5], [-0.5, 0.5, -0.5], 
-        [0.5, 0.5, 0.5], [0.5, 0.5, -0.5]
-    ];
+fn spawn_block(world: &mut World, position: [i128; 3], material: Material) {
+    let mut trans = Transform::default();
+    trans.append_translation_xyz(
+        position[0] as f32 + 0.5,
+        position[1] as f32 + 0.5,
+        position[2] as f32 + 0.5,
+    );
 
-    let pos: [[f32; 3]; 36] = [
-        v[2], v[1], v[3],  v[2], v[0], v[1], // D - v
-        v[7], v[4], v[6],  v[7], v[5], v[4], // U - v
-        v[6], v[0], v[2],  v[6], v[4], v[0], // F - v
-        v[3], v[5], v[7],  v[3], v[1], v[5], // B - v
-        v[4], v[1], v[0],  v[4], v[5], v[1], // L - v
-        v[7], v[2], v[3],  v[7], v[6], v[2], // R - v
-    ];
-
-    let n: [[f32; 3]; 6] = [
-        [0.0, -1.0, 0.0],   // D - v
-        [0.0, 1.0, 0.0],    // U - v
-        [0.0, 0.0, 1.0],    // F - v
-        [0.0, 0.0, -1.0],   // B - v
-        [-1.0, 0.0, 0.0],   // L - v
-        [1.0, 0.0, 0.0],    // R - v
-    ];
-
-    let norm: [[f32; 3]; 36] = [
-        n[0], n[0], n[0], n[0], n[0], n[0], // D - v
-        n[1], n[1], n[1], n[1], n[1], n[1], // U - v
-        n[2], n[2], n[2], n[2], n[2], n[2], // F - v
-        n[3], n[3], n[3], n[3], n[3], n[3], // B - v
-        n[4], n[4], n[4], n[4], n[4], n[4], // L - v
-        n[5], n[5], n[5], n[5], n[5], n[5], // R - v
-    ];
-
-    let tex: [[f32; 2]; 36] = [
-        [0.0, 1.0], [1.0, 0.0], [0.0, 0.0],  [0.0, 1.0], [1.0, 1.0], [1.0, 0.0], // D - v
-        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // U - v
-        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // F - v
-        [1.0, 1.0], [0.0, 0.0], [1.0, 0.0],  [1.0, 1.0], [0.0, 1.0], [0.0, 0.0], // B - v
-        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // L - v
-        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // R - v
-    ];
-
-    let pos: Vec<Position> = pos.iter().map(|&coords| { Position(coords) }).collect();
-    let norm: Vec<Normal> = norm.iter().map(|&coords| { Normal(coords) }).collect();
-    let tex: Vec<TexCoord> = tex.iter().map(|&coords| { TexCoord(coords) }).collect();
-    MeshBuilder::new()
-        .with_vertices(pos)
-        .with_vertices(norm)
-        .with_vertices(tex)
-        .into()
+    let block = Block { position, material };
+    block.create_entity(world).with(trans).build();
 }
-
 
 // endregion

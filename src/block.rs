@@ -1,41 +1,41 @@
 // use std::path::PathBuf;
-use crate::bundles::camera_control_bundle::{MouseControlTag, CreativeMovementControlTag};
+// use crate::bundles::camera_control_bundle::{MouseControlTag, CreativeMovementControlTag};
 
 use amethyst::{
     // assets::RonFormat,
     // core::transform::TransformBundle,
     ecs::{WorldExt, EntityBuilder},
     // assets::{AssetStorage, Loader, Handle},
-    assets::{AssetLoaderSystemData, Handle, Loader},
-    controls::HideCursor,
-    core::{
-        transform::Transform,
-        math::{Point2, Point3, UnitQuaternion, Vector2, Vector3},
-    },
-    error::Error,
-    input::{is_key_down, is_mouse_button_down},
+    assets::{AssetLoaderSystemData},//, Handle, Loader},
+    // controls::HideCursor,
+    // core::{
+    //     transform::Transform,
+    //     math::{Point2, Point3, UnitQuaternion, Vector2, Vector3},
+    // },
+    // error::Error,
+    // input::{is_key_down, is_mouse_button_down},
     prelude::*,
     renderer::{
-        debug_drawing::{DebugLine, DebugLines, DebugLinesComponent, DebugLinesParams},
+        // debug_drawing::{DebugLine, DebugLines, DebugLinesComponent, DebugLinesParams},
         ImageFormat, Texture,
-        light::{Light, PointLight, SunLight},
+        // light::{Light, PointLight, SunLight},
         // ImageFormat, SpriteRender, SpriteSheet, SpriteSheetFormat, Texture,
         mtl::{Material as AmethystMaterial, MaterialDefaults},
-        palette::{Srgb, Srgba, LinSrgba},
+        // palette::{Srgb, Srgba, LinSrgba},
         rendy::{
-            mesh::{MeshBuilder, Normal, Position, Tangent, TexCoord},
-            texture::palette::{load_from_srgba, load_from_srgb, load_from_linear_rgba},
-            util::types::vertex::{PosTex, PosColor, Color},
+            mesh::{MeshBuilder, Normal, Position, /*Tangent, */TexCoord},
+            // texture::palette::{load_from_srgba, load_from_srgb, load_from_linear_rgba},
+            // util::types::vertex::{PosTex, PosColor, Color},
         },
-        shape::{Shape},
+        // shape::{Shape},
         types::{Mesh, MeshData},//, Texture},
-        Camera,
+        // Camera,
     },
-    window::ScreenDimensions,
-    winit::{MouseButton, VirtualKeyCode},
+    // window::ScreenDimensions,
+    // winit::{MouseButton, VirtualKeyCode},
 };
 
-use std::f32::consts::{FRAC_PI_8, FRAC_PI_6};
+// use std::f32::consts::{FRAC_PI_8, FRAC_PI_6};
 
 use amethyst::ecs::prelude::{Component, DenseVecStorage};
 

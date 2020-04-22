@@ -4,8 +4,7 @@ use amethyst::{
     prelude::*,
     renderer::{
         palette::Srgb,
-        pass::{DrawDebugLines, DrawDebugLinesDesc},
-        plugins::{RenderPbr3D, RenderShaded3D, RenderSkybox, RenderToWindow},
+        plugins::{RenderSkybox, RenderToWindow},
         types::DefaultBackend,
         RenderingBundle,
     },

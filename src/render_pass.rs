@@ -8,7 +8,7 @@ use amethyst::{
     renderer::{
         batch::{GroupIterator, OrderedTwoLevelBatch, TwoLevelBatch},
         bundle::Target,
-        mtl::{FullTextureSet, Material, StaticTextureSet, TexAlbedo, TexEmission},
+        mtl::{FullTextureSet, Material, StaticTextureSet},//, TexAlbedo, TexEmission},
         pipeline::{PipelineDescBuilder, PipelinesBuilder},
         pod::VertexArgs,
         rendy::{
@@ -23,7 +23,7 @@ use amethyst::{
                 device::Device,
                 pso::{self, ShaderStageFlags},
             },
-            mesh::{AsVertex, Normal, Position, Tangent, TexCoord, VertexFormat},
+            mesh::{AsVertex, Normal, Position, /*Tangent, */TexCoord, VertexFormat},
             shader::{Shader, SpirvShader},
         },
         resources::Tint,
@@ -36,7 +36,7 @@ use amethyst::{
 };
 use derivative::Derivative;
 use smallvec::SmallVec;
-use std::{include_bytes, marker::PhantomData};
+use std::{/*include_bytes, */marker::PhantomData};
 
 // macro_rules! profile_scope_impl {
 //     ($string:expr) => {
@@ -165,14 +165,14 @@ impl IRenderPassDef for CustomPassDef {
     }
 }
 
-/// Describes a Custom (CR) 3d Pass with lighting
-pub type DrawCustom3DDesc<B> = BaseDrawDesc<B, CustomPassDef>;
-/// Draws a Custom 3d Pass with lighting
-pub type DrawCustom3D<B> = BaseDraw<B, CustomPassDef>;
-/// Describes a Custom (CR) 3d Pass with lighting and transparency
-pub type DrawCustom3DTransparentDesc<B> = BaseDrawTransparentDesc<B, CustomPassDef>;
-/// Draws a Custom (CR) 3d Pass with lighting and transparency
-pub type DrawCustom3DTransparent<B> = BaseDrawTransparent<B, CustomPassDef>;
+// /// Describes a Custom (CR) 3d Pass with lighting
+// pub type DrawCustom3DDesc<B> = BaseDrawDesc<B, CustomPassDef>;
+// /// Draws a Custom 3d Pass with lighting
+// pub type DrawCustom3D<B> = BaseDraw<B, CustomPassDef>;
+// /// Describes a Custom (CR) 3d Pass with lighting and transparency
+// pub type DrawCustom3DTransparentDesc<B> = BaseDrawTransparentDesc<B, CustomPassDef>;
+// /// Draws a Custom (CR) 3d Pass with lighting and transparency
+// pub type DrawCustom3DTransparent<B> = BaseDrawTransparent<B, CustomPassDef>;
 
 // region - RenderPass
 
@@ -185,13 +185,13 @@ pub struct BaseRender<D: IRenderPassDef> {
     marker: std::marker::PhantomData<D>,
 }
 
-impl<D: IRenderPassDef> BaseRender<D> {
-    /// Set target to which 3d meshes will be rendered.
-    pub fn with_target(mut self, target: Target) -> Self {
-        self.target = target;
-        self
-    }
-}
+// impl<D: IRenderPassDef> BaseRender<D> {
+//     /// Set target to which 3d meshes will be rendered.
+//     pub fn with_target(mut self, target: Target) -> Self {
+//         self.target = target;
+//         self
+//     }
+// }
 
 impl<B: Backend, D: IRenderPassDef> RenderPlugin<B> for BaseRender<D> {
     fn on_build<'a, 'b>(
@@ -265,8 +265,8 @@ impl<B: Backend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawDesc<B
         let env = EnvironmentSub::new(
             factory,
             [
-                hal::pso::ShaderStageFlags::VERTEX,
-                hal::pso::ShaderStageFlags::FRAGMENT,
+                ShaderStageFlags::VERTEX,
+                ShaderStageFlags::FRAGMENT,
             ],
         )?;
         let materials = MaterialSub::new(factory)?;
@@ -423,7 +423,7 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
         }
     }
 
-    fn dispose(mut self: Box<Self>, factory: &mut Factory<B>, _aux: &World) {
+    fn dispose(self: Box<Self>, factory: &mut Factory<B>, _aux: &World) {
         // profile_scope_impl!("dispose");
         unsafe {
             factory
@@ -620,7 +620,7 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparen
         }
     }
 
-    fn dispose(mut self: Box<Self>, factory: &mut Factory<B>, _aux: &World) {
+    fn dispose(self: Box<Self>, factory: &mut Factory<B>, _aux: &World) {
         unsafe {
             factory
                 .device()

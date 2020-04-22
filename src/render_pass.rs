@@ -159,19 +159,19 @@ impl IRenderPassDef for CustomPassDef {
         vec![
             Position::vertex(),
             Normal::vertex(),
-            Tangent::vertex(),
+            // Tangent::vertex(),
             TexCoord::vertex(),
         ]
     }
 }
 
-/// Describes a Custom (PBR) 3d Pass with lighting
+/// Describes a Custom (CR) 3d Pass with lighting
 pub type DrawCustom3DDesc<B> = BaseDrawDesc<B, CustomPassDef>;
 /// Draws a Custom 3d Pass with lighting
 pub type DrawCustom3D<B> = BaseDraw<B, CustomPassDef>;
-/// Describes a Physically-based (PBR) 3d Pass with lighting and transparency
+/// Describes a Custom (CR) 3d Pass with lighting and transparency
 pub type DrawCustom3DTransparentDesc<B> = BaseDrawTransparentDesc<B, CustomPassDef>;
-/// Draws a Physically-based (PBR) 3d Pass with lighting and transparency
+/// Draws a Custom (CR) 3d Pass with lighting and transparency
 pub type DrawCustom3DTransparent<B> = BaseDrawTransparent<B, CustomPassDef>;
 
 // region - RenderPass

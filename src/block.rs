@@ -131,23 +131,23 @@ fn block_mesh() -> MeshData {
         n[5], n[5], n[5], n[5], n[5], n[5], // R - v
     ];
 
-    let t: [[f32; 4]; 6] = [
-        [1.0, 0.0, 1.0, 1.0], // D - v
-        [1.0, 0.0, 1.0, 1.0], // U - v
-        [1.0, 1.0, 0.0, 1.0], // F - v
-        [1.0, 1.0, 0.0, 1.0], // B - v
-        [0.0, 1.0, 1.0, 1.0], // L - v
-        [0.0, 1.0, 1.0, 1.0], // R - v
-    ];
+    // let t: [[f32; 4]; 6] = [
+    //     [1.0, 0.0, 1.0, 1.0], // D - v
+    //     [1.0, 0.0, 1.0, 1.0], // U - v
+    //     [1.0, 1.0, 0.0, 1.0], // F - v
+    //     [1.0, 1.0, 0.0, 1.0], // B - v
+    //     [0.0, 1.0, 1.0, 1.0], // L - v
+    //     [0.0, 1.0, 1.0, 1.0], // R - v
+    // ];
 
-    let tn: [[f32; 4]; 36] = [
-        t[0], t[0], t[0], t[0], t[0], t[0], // D - v
-        t[1], t[1], t[1], t[1], t[1], t[1], // U - v
-        t[2], t[2], t[2], t[2], t[2], t[2], // F - v
-        t[3], t[3], t[3], t[3], t[3], t[3], // B - v
-        t[4], t[4], t[4], t[4], t[4], t[4], // L - v
-        t[5], t[5], t[5], t[5], t[5], t[5], // R - v
-    ];
+    // let tn: [[f32; 4]; 36] = [
+    //     t[0], t[0], t[0], t[0], t[0], t[0], // D - v
+    //     t[1], t[1], t[1], t[1], t[1], t[1], // U - v
+    //     t[2], t[2], t[2], t[2], t[2], t[2], // F - v
+    //     t[3], t[3], t[3], t[3], t[3], t[3], // B - v
+    //     t[4], t[4], t[4], t[4], t[4], t[4], // L - v
+    //     t[5], t[5], t[5], t[5], t[5], t[5], // R - v
+    // ];
 
     let tex: [[f32; 2]; 36] = [
         [0.0, 1.0], [1.0, 0.0], [0.0, 0.0],  [0.0, 1.0], [1.0, 1.0], [1.0, 0.0], // D - v
@@ -160,12 +160,12 @@ fn block_mesh() -> MeshData {
 
     let pos: Vec<Position> = pos.iter().map(|&coords| { Position(coords) }).collect();
     let norm: Vec<Normal> = norm.iter().map(|&coords| { Normal(coords) }).collect();
-    let tn: Vec<Tangent> = tn.iter().map(|&coords| { Tangent(coords) }).collect();
+    // let tn: Vec<Tangent> = tn.iter().map(|&coords| { Tangent(coords) }).collect();
     let tex: Vec<TexCoord> = tex.iter().map(|&coords| { TexCoord(coords) }).collect();
     MeshBuilder::new()
         .with_vertices(pos)
         .with_vertices(norm)
-        .with_vertices(tn)
+        // .with_vertices(tn)
         .with_vertices(tex)
         .into()
 }

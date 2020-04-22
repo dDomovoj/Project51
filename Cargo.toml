@@ -6,12 +6,12 @@ edition = "2018"
 
 [dependencies.amethyst]
 version = "0.15.0"
-features = ["metal"]
+features = ["metal", "shader-compiler"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 guard = "0.5.0"
-shaderc = "0.6.2"
+shaderc = "0.5.0"
 failure = "0.1.7"
 log = "0.4.8"
 

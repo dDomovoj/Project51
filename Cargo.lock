@@ -2876,6 +2876,7 @@ dependencies = [
  "rendy-factory",
  "rendy-util",
  "serde",
+ "shaderc",
  "smallvec 0.6.13",
 ]
 
@@ -3174,9 +3175,9 @@ dependencies = [
 
 [[package]]
 name = "shaderc"
-version = "0.6.2"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed344938df2d7fa3cc6bfb4af0b578f00f9b389d5fe7be0250fa657c442a8281"
+checksum = "b7edff43a83e12343b7908b4ee4cef1c886460fc721d868ee69d6a45ae902c22"
 dependencies = [
  "libc",
  "shaderc-sys",
@@ -3184,9 +3185,9 @@ dependencies = [
 
 [[package]]
 name = "shaderc-sys"
-version = "0.6.2"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30075c712b08798cb2b5e54e4434970a4a3a3a3e838b0642590c74605d3cc528"
+checksum = "1a3d04ede135a5d6d66451f6ed501da68f8a63e0477185ab4e7d459cd78a6e34"
 dependencies = [
  "cmake",
  "libc",

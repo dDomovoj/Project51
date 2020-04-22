@@ -1,38 +1,42 @@
-use amethyst::assets::{AssetStorage, Handle};
-use amethyst::core::{
-    ecs::{Join, Read, ReadExpect, ReadStorage, SystemData},
-    transform::Transform,
-    Hidden, HiddenPropagate,
-};
-use amethyst::renderer::bundle::Target;
-use amethyst::renderer::rendy::{
-    command::{QueueId, RenderPassEncoder},
-    factory::Factory,
-    graph::{
-        render::{PrepareResult, RenderGroup, RenderGroupDesc},
-        GraphContext, NodeBuffer, NodeImage,
+use amethyst::{
+    assets::{AssetStorage, Handle},
+    core::{
+        ecs::{Join, Read, ReadExpect, ReadStorage, SystemData},
+        transform::Transform,
+        Hidden, HiddenPropagate,
     },
-    hal::pso::ShaderStageFlags,
-    hal::{self, device::Device, pso},
-    mesh::{AsVertex, Normal, Position, Tangent, TexCoord, VertexFormat},
-    shader::{Shader, SpirvShader},
+    renderer::{
+        batch::{GroupIterator, OrderedTwoLevelBatch, TwoLevelBatch},
+        bundle::Target,
+        mtl::{FullTextureSet, Material, StaticTextureSet, TexAlbedo, TexEmission},
+        pipeline::{PipelineDescBuilder, PipelinesBuilder},
+        pod::VertexArgs,
+        rendy::{
+            command::{QueueId, RenderPassEncoder},
+            factory::Factory,
+            graph::{
+                render::{PrepareResult, RenderGroup, RenderGroupDesc},
+                GraphContext, NodeBuffer, NodeImage,
+            },
+            hal::{
+                self,
+                device::Device,
+                pso::{self, ShaderStageFlags},
+            },
+            mesh::{AsVertex, Normal, Position, Tangent, TexCoord, VertexFormat},
+            shader::{Shader, SpirvShader},
+        },
+        resources::Tint,
+        submodules::{DynamicVertexBuffer, EnvironmentSub, MaterialId, MaterialSub},
+        transparent::Transparent,
+        types::{Backend, Mesh},
+        util,
+        visibility::{Visibility, VisibilitySortingSystem},
+    },
 };
-use amethyst::renderer::{
-    batch::{GroupIterator, OrderedTwoLevelBatch, TwoLevelBatch},
-    mtl::{FullTextureSet, Material, StaticTextureSet, TexAlbedo, TexEmission},
-    pipeline::{PipelineDescBuilder, PipelinesBuilder},
-    pod::VertexArgs,
-    resources::Tint,
-    submodules::{DynamicVertexBuffer, EnvironmentSub, MaterialId, MaterialSub, SkinningSub},
-    transparent::Transparent,
-    types::{Backend, Mesh},
-    util,
-    visibility::{Visibility, VisibilitySortingSystem},
-};
-use std::{include_bytes, marker::PhantomData};
-
 use derivative::Derivative;
 use smallvec::SmallVec;
+use std::{include_bytes, marker::PhantomData};
 
 // macro_rules! profile_scope_impl {
 //     ($string:expr) => {
@@ -48,8 +52,9 @@ use smallvec::SmallVec;
 
 // region - Shaders
 
-use shaderc::{ShaderKind, SourceLanguage};
 use std::path::PathBuf;
+use amethyst::renderer::rendy::shader::{ShaderKind, SourceLanguage};
+use crate::render_shader::PathBufShaderInfo;
 
 use amethyst::{
     core::ecs::{DispatcherBuilder, World},
@@ -59,24 +64,45 @@ use amethyst::{
 
 lazy_static::lazy_static! {
 
-    static ref VERTEX: SpirvShader = SpirvShader::from_bytes(
-        include_bytes!("../assets/shaders/compiled/vertex/pos_norm_tang_tex.vert.spv"),
-        ShaderStageFlags::VERTEX,
-        "main",
-    ).unwrap();
+    // static ref VERTEX: SpirvShader = SpirvShader::from_bytes(
+    //     include_bytes!("../assets/shaders/compiled/vertex/pos_norm_tang_tex.vert.spv"),
+    //     ShaderStageFlags::VERTEX,
+    //     "main",
+    // ).unwrap();
 
-    static ref FRAGMENT: SpirvShader = SpirvShader::from_bytes(
-        include_bytes!("../assets/shaders/compiled/fragment/pbr.frag.spv"),
-        ShaderStageFlags::FRAGMENT,
-        "main",
-    ).unwrap();
+    // static ref FRAGMENT: SpirvShader = SpirvShader::from_bytes(
+    //     include_bytes!("../assets/shaders/compiled/fragment/pbr.frag.spv"),
+    //     ShaderStageFlags::FRAGMENT,
+    //     "main",
+    // ).unwrap();
 
-    // static ref VERTEX_NOT_COMPILED: SpirvShader = PathBufShaderInfo::new(
-    //     PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/shaders/src/vertex/custom.vert")),
-    //     ShaderKind::Vertex,
+    static ref VERTEX: SpirvShader = PathBufShaderInfo::new(
+        PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/shaders/src/vertex/custom.vert")),
+        ShaderKind::Vertex,
+        SourceLanguage::GLSL,
+       "main",
+    ).precompile().unwrap();
+
+    // static ref MATH: SpirvShader = PathBufShaderInfo::new(
+    //     PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/shaders/src/fragment/header/math.frag")),
+    //     ShaderKind::Fragment,
     //     SourceLanguage::GLSL,
     //    "main",
     // ).precompile().unwrap();
+
+    // static ref ENV: SpirvShader = PathBufShaderInfo::new(
+    //     PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/shaders/src/fragment/header/env.frag")),
+    //     ShaderKind::Fragment,
+    //     SourceLanguage::GLSL,
+    //    "main",
+    // ).precompile().unwrap();
+
+    static ref FRAGMENT: SpirvShader = PathBufShaderInfo::new(
+        PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/shaders/src/fragment/custom.frag")),
+        ShaderKind::Fragment,
+        SourceLanguage::GLSL,
+       "main",
+    ).precompile().unwrap();
 
 }
 
@@ -121,7 +147,7 @@ pub type Render3D = BaseRender<CustomPassDef>;
 pub struct CustomPassDef;
 
 impl IRenderPassDef for CustomPassDef {
-    const NAME: &'static str = "Pbr";
+    const NAME: &'static str = "Render 3d";
     type TextureSet = FullTextureSet;
     fn vertex_shader() -> &'static SpirvShader {
         &VERTEX
@@ -281,17 +307,12 @@ impl<B: Backend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawDesc<B
 #[derivative(Debug(bound = ""))]
 pub struct BaseDraw<B: Backend, T: IRenderPassDef> {
     pipeline_basic: B::GraphicsPipeline,
-    // pipeline_skinned: Option<B::GraphicsPipeline>,
     pipeline_layout: B::PipelineLayout,
     static_batches: TwoLevelBatch<MaterialId, u32, SmallVec<[VertexArgs; 4]>>,
-    // skinned_batches: TwoLevelBatch<MaterialId, u32, SmallVec<[SkinnedVertexArgs; 4]>>,
     vertex_format_base: Vec<VertexFormat>,
-    // vertex_format_skinned: Vec<VertexFormat>,
     env: EnvironmentSub<B>,
     materials: MaterialSub<B, T::TextureSet>,
-    // skinning: SkinningSub<B>,
     models: DynamicVertexBuffer<B, VertexArgs>,
-    // skinned_models: DynamicVertexBuffer<B, SkinnedVertexArgs>,
     marker: PhantomData<T>,
 }
 
@@ -450,7 +471,6 @@ impl<B: Backend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawTransp
         )?;
 
         let materials = MaterialSub::new(factory)?;
-        let skinning = SkinningSub::new(factory)?;
 
         let mut vertex_format_base = T::base_format();
 
@@ -617,13 +637,8 @@ impl<B: Backend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparen
 // region - Common
 
 fn build_pipelines<B: Backend, T: IRenderPassDef>(
-    factory: &Factory<B>,
-    subpass: hal::pass::Subpass<'_, B>,
-    framebuffer_width: u32,
-    framebuffer_height: u32,
-    vertex_format_base: &[VertexFormat],
-    // vertex_format_skinned: &[VertexFormat], skinning: bool,
-    transparent: bool,
+    factory: &Factory<B>, subpass: hal::pass::Subpass<'_, B>, framebuffer_width: u32,
+    framebuffer_height: u32, vertex_format_base: &[VertexFormat], transparent: bool,
     layouts: Vec<&B::DescriptorSetLayout>,
 ) -> Result<(Vec<B::GraphicsPipeline>, B::PipelineLayout), failure::Error> {
     let pipeline_layout = unsafe {

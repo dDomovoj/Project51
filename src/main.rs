@@ -17,6 +17,7 @@ use amethyst::{
 
 mod bundles;
 mod game_start;
+mod render_shader;
 mod render_pass;
 mod render_plugins;
 mod systems;

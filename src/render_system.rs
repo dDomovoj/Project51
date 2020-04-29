@@ -210,6 +210,12 @@ impl<'a, B: ExtendedBackend> System<'a> for MeshProcessorSystem<B> {
     fn setup(&mut self, world: &mut World) {
         SetupData::setup(world);
     }
+
+    fn dispose(self, world: &mut World) {
+        if let Some(mut storage) = world.try_fetch_mut::<AssetStorage<Mesh>>() {
+            storage.unload_all();
+        }
+    }
 }
 
 // /// Asset processing system for `Texture` asset type.

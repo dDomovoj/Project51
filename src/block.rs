@@ -23,12 +23,12 @@ use amethyst::{
         mtl::{Material as AmethystMaterial, MaterialDefaults},
         // palette::{Srgb, Srgba, LinSrgba},
         rendy::{
-            mesh::{MeshBuilder, Normal, Position, /*Tangent, */TexCoord},
+            mesh::{Normal, Position, /*Tangent, */TexCoord},
             // texture::palette::{load_from_srgba, load_from_srgb, load_from_linear_rgba},
             // util::types::vertex::{PosTex, PosColor, Color},
         },
         // shape::{Shape},
-        types::{Mesh, MeshData},//, Texture},
+        // types::{Mesh, MeshData},//, Texture},
         // Camera,
     },
     // window::ScreenDimensions,
@@ -38,6 +38,10 @@ use amethyst::{
 // use std::f32::consts::{FRAC_PI_8, FRAC_PI_6};
 
 use amethyst::ecs::prelude::{Component, DenseVecStorage};
+
+use crate::render_mesh::{Mesh, MeshData, MeshBuilder};
+
+// use crate::render_vertex::MaterialIdx;
 
 pub enum Material {
     Dirt,
@@ -56,41 +60,41 @@ impl Component for Block {
 
 impl Block {
 
-    fn texture_name(&self) -> &str {
-        match &self.material {
-            Material::Grass => "grass_block_side",
-            Material::Crate => "crate",
-            Material::Dirt => "dirt",
-        }
-    }
+    // fn texture_name(&self) -> &str {
+    //     match &self.material {
+    //         Material::Grass => "grass_block_side",
+    //         Material::Crate => "crate",
+    //         Material::Dirt => "dirt",
+    //     }
+    // }
 
     pub fn create_entity<'a>(&self, world: &'a mut World) -> EntityBuilder<'a> {
-        let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
+        // let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
         let mesh = world.exec(|loader: AssetLoaderSystemData<Mesh>| {
             loader.load_from_data(block_mesh(), (),)
         });
 
-        let texture = world.exec(|loader: AssetLoaderSystemData<Texture>| {
-            loader.load(
-                format!("texture/{}.png", self.texture_name()),
-                ImageFormat::default(),
-                (),
-            )
-        });
+        // let texture = world.exec(|loader: AssetLoaderSystemData<Texture>| {
+        //     loader.load(
+        //         format!("texture/{}.png", self.texture_name()),
+        //         ImageFormat::default(),
+        //         (),
+        //     )
+        // });
 
-        let mat = world.exec(|loader: AssetLoaderSystemData<AmethystMaterial>| {
-            loader.load_from_data(
-                AmethystMaterial {
-                    albedo: texture,
-                    ..default_mat.clone()
-                },
-                (),
-            )
-        });
+        // let mat = world.exec(|loader: AssetLoaderSystemData<AmethystMaterial>| {
+        //     loader.load_from_data(
+        //         AmethystMaterial {
+        //             albedo: texture,
+        //             ..default_mat.clone()
+        //         },
+        //         (),
+        //     )
+        // });
 
         world.create_entity()
             .with(mesh)
-            .with(mat)
+            // .with(mat)
     }
 
 }
@@ -149,23 +153,34 @@ fn block_mesh() -> MeshData {
     //     t[5], t[5], t[5], t[5], t[5], t[5], // R - v
     // ];
 
-    let tex: [[f32; 2]; 36] = [
-        [0.0, 1.0], [1.0, 0.0], [0.0, 0.0],  [0.0, 1.0], [1.0, 1.0], [1.0, 0.0], // D - v
-        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // U - v
-        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // F - v
-        [1.0, 1.0], [0.0, 0.0], [1.0, 0.0],  [1.0, 1.0], [0.0, 1.0], [0.0, 0.0], // B - v
-        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // L - v
-        [1.0, 0.0], [0.0, 1.0], [1.0, 1.0],  [1.0, 0.0], [0.0, 0.0], [0.0, 1.0], // R - v
-    ];
+    // let m: [u32; 36] = [
+    //     0, 0, 0, 0, 0, 0, // D - v
+    //     1, 1, 1, 1, 1, 1, // U - v
+    //     2, 2, 2, 2, 2, 2, // F - v
+    //     3, 3, 3, 3, 3, 3, // B - v
+    //     4, 4, 4, 4, 4, 4, // L - v
+    //     5, 5, 5, 5, 5, 5, // R - v
+    // ];
+
+    // let tex: [[f32; 2]; 36] = [
+    //     [0., 1.], [1., 0.], [0., 0.],  [0., 1.], [1., 1.], [1., 0.], // D - v
+    //     [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // U - v
+    //     [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // F - v
+    //     [1., 1.], [0., 0.], [1., 0.],  [1., 1.], [0., 1.], [0., 0.], // B - v
+    //     [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // L - v
+    //     [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // R - v
+    // ];
 
     let pos: Vec<Position> = pos.iter().map(|&coords| { Position(coords) }).collect();
     let norm: Vec<Normal> = norm.iter().map(|&coords| { Normal(coords) }).collect();
     // let tn: Vec<Tangent> = tn.iter().map(|&coords| { Tangent(coords) }).collect();
-    let tex: Vec<TexCoord> = tex.iter().map(|&coords| { TexCoord(coords) }).collect();
+    // let m: Vec<MaterialIdx> = m.iter().map(|&idx| { MaterialIdx(idx) }).collect();
+    // let tex: Vec<TexCoord> = tex.iter().map(|&coords| { TexCoord(coords) }).collect();
     MeshBuilder::new()
         .with_vertices(pos)
         .with_vertices(norm)
         // .with_vertices(tn)
-        .with_vertices(tex)
+        // .with_vertices(m)
+        // .with_vertices(tex)
         .into()
 }

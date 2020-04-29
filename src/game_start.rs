@@ -60,6 +60,9 @@ impl SimpleState for GameStart {
         // // `texture` is the pixel data.
         // self.sprite_sheet_handle.replace(load_sprite_sheet(world));
 
+        // use crate::render_mesh::Mesh;
+        // world.register::<Mesh>();
+
         spawn_axis(world);
         spawn_blocks(world);
         spawn_lights(world);

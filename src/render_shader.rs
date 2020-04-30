@@ -4,9 +4,9 @@ use amethyst::renderer::rendy::{
     shader::{Shader, SpirvShader},
 };
 use shaderc::{self, ShaderKind, SourceLanguage};
-use std::path::{Path};
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 use std::str::FromStr;
 
 macro_rules! vk_make_version {
@@ -67,22 +67,26 @@ where
             .compile_into_spirv(
                 &code,
                 self.kind,
-                self.path.as_ref().to_str().ok_or_else(|| {
-                    failure::format_err!("'{:?}' is not valid UTF-8 string", self.path)
-                })?,
+                self.path
+                    .as_ref()
+                    .to_str()
+                    .ok_or_else(|| failure::format_err!("'{:?}' is not valid UTF-8 string", self.path))?,
                 self.entry.as_ref(),
                 Some({
-                    let mut ops = shaderc::CompileOptions::new()
-                        .ok_or_else(|| failure::format_err!("Failed to init Shaderc"))?;
+                    let mut ops =
+                        shaderc::CompileOptions::new().ok_or_else(|| failure::format_err!("Failed to init Shaderc"))?;
                     ops.set_include_callback(|header, _include_type, path, _depth| {
                         let path = Path::new(path)
-                            .parent().expect("Must have a parent dir")
+                            .parent()
+                            .expect("Must have a parent dir")
                             .join(Path::new(header));
                         let path_str = path.to_str().expect("Must be a valid path");
 
                         let mut s = String::new();
-                        File::open(path_str).expect("File must exist")
-                            .read_to_string(&mut s).expect("File must contain data");
+                        File::open(path_str)
+                            .expect("File must exist")
+                            .read_to_string(&mut s)
+                            .expect("File must contain data");
 
                         let resolved = shaderc::ResolvedInclude {
                             resolved_name: String::from_str(path_str).expect(""),

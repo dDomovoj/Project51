@@ -1,8 +1,6 @@
 //! Module for mesh support.
 use amethyst::assets::Asset;
-use amethyst::assets::{
-    AssetPrefab, AssetStorage, Format, Handle, Loader, PrefabData, ProgressCounter,
-};
+use amethyst::assets::{AssetPrefab, AssetStorage, Format, Handle, Loader, PrefabData, ProgressCounter};
 use amethyst::core::ecs::DenseVecStorage;
 use amethyst::core::ecs::{Entity, Read, ReadExpect, WriteStorage};
 use amethyst::error::Error;
@@ -124,11 +122,9 @@ amethyst::assets::register_format_type!(MeshData);
 // }
 
 pub trait ExtendedBackend: Backend {
-
     fn unwrap_custom_mesh(mesh: &Mesh) -> Option<&BackendMesh<Self>>;
 
     fn wrap_custom_mesh(mesh: BackendMesh<Self>) -> Mesh;
-
 }
 
 // macro_rules! impl_backends {
@@ -206,21 +202,21 @@ pub trait ExtendedBackend: Backend {
 
 // Create `DefaultExtendedBackend` type alias only when exactly one backend is selected.
 // macro_rules! impl_single_default {
-    // ( $([$feature:literal, $backend:ty]),* ) => {
-    //     impl_single_default!(@ (), ($([$feature, $backend])*));
-    // };
-    // (@ ($($prev:literal)*), ([$cur:literal, $backend:ty]) ) => {
-    //     #[cfg(all( feature = $cur, not(any($(feature = $prev),*)) ))]
-    //     #[doc = "Default backend"]
-    //     pub type DefaultExtendedBackend = $backend;
-    // };
-    // (@ ($($prev:literal)*), ([$cur:literal, $backend:ty] $([$nf:literal, $nb:ty])*) ) => {
-    //     #[cfg(all( feature = $cur, not(any($(feature = $prev,)* $(feature = $nf),*)) ))]
-    //     #[doc = "Default backend"]
-    //     pub type DefaultExtendedBackend = $backend;
+// ( $([$feature:literal, $backend:ty]),* ) => {
+//     impl_single_default!(@ (), ($([$feature, $backend])*));
+// };
+// (@ ($($prev:literal)*), ([$cur:literal, $backend:ty]) ) => {
+//     #[cfg(all( feature = $cur, not(any($(feature = $prev),*)) ))]
+//     #[doc = "Default backend"]
+//     pub type DefaultExtendedBackend = $backend;
+// };
+// (@ ($($prev:literal)*), ([$cur:literal, $backend:ty] $([$nf:literal, $nb:ty])*) ) => {
+//     #[cfg(all( feature = $cur, not(any($(feature = $prev,)* $(feature = $nf),*)) ))]
+//     #[doc = "Default backend"]
+//     pub type DefaultExtendedBackend = $backend;
 
-    //     impl_single_default!(@ ($($prev)* $cur), ($([$nf, $nb])*) );
-    // };
+//     impl_single_default!(@ ($($prev)* $cur), ($([$nf, $nb])*) );
+// };
 // }
 
 // impl_backends!(
@@ -515,9 +511,7 @@ impl<'a> MeshBuilder<'a> {
     /// effectively discaring extra data from larger buffers.
     ///
     /// Note that contents of index buffer is not validated.
-    pub fn build<B>(
-        &self, queue: QueueId, factory: &Factory<B>,
-    ) -> Result<BackendMesh<B>, failure::Error>
+    pub fn build<B>(&self, queue: QueueId, factory: &Factory<B>) -> Result<BackendMesh<B>, failure::Error>
     where
         B: gfx_hal::Backend,
     {
@@ -529,11 +523,7 @@ impl<'a> MeshBuilder<'a> {
             .min()
             .unwrap_or(0);
 
-        let buffer_size = self
-            .vertices
-            .iter()
-            .map(|v| (v.format.stride * len) as usize)
-            .sum();
+        let buffer_size = self.vertices.iter().map(|v| (v.format.stride * len) as usize).sum();
 
         let aligned_size = align_by(align, buffer_size) as u64;
 
@@ -636,7 +626,6 @@ fn align_by(align: usize, value: usize) -> usize {
     ((value + align - 1) / align) * align
 }
 
-
 // region - BackendMesh
 
 /// Single mesh is a collection of buffer ranges that provides available attributes.
@@ -690,11 +679,7 @@ where
                 // Can't bind
                 return Err(Incompatible {
                     not_found: format.clone(),
-                    in_formats: self
-                        .vertex_layouts
-                        .iter()
-                        .map(|l| l.format.clone())
-                        .collect(),
+                    in_formats: self.vertex_layouts.iter().map(|l| l.format.clone()).collect(),
                 });
             }
         }
@@ -733,11 +718,7 @@ where
         unsafe {
             match self.index_buffer.as_ref() {
                 Some(index_buffer) => {
-                    encoder.bind_index_buffer(
-                        index_buffer.buffer.raw(),
-                        0,
-                        index_buffer.index_type,
-                    );
+                    encoder.bind_index_buffer(index_buffer.buffer.raw(), 0, index_buffer.index_type);
                     encoder.bind_vertex_buffers(first_binding, vertex_iter);
                     encoder.draw_indexed(0..self.len, 0, instance_range);
                 }
@@ -768,9 +749,7 @@ pub struct Incompatible {
 }
 
 /// Helper function to find buffer with compatible format.
-fn find_compatible_buffer(
-    vertex_layouts: &[VertexBufferLayout], format: &VertexFormat,
-) -> Option<usize> {
+fn find_compatible_buffer(vertex_layouts: &[VertexBufferLayout], format: &VertexFormat) -> Option<usize> {
     debug_assert!(is_slice_sorted(&*format.attributes));
     for (i, layout) in vertex_layouts.iter().enumerate() {
         debug_assert!(is_slice_sorted(&*layout.format.attributes));
@@ -791,13 +770,10 @@ fn is_compatible(left: &VertexFormat, right: &VertexFormat) -> bool {
     // Don't start searching from index 0 because attributes are sorted
     let mut skip = 0;
     right.attributes.iter().all(|r| {
-        left.attributes[skip..]
-            .iter()
-            .position(|l| l == r)
-            .map_or(false, |p| {
-                skip += p;
-                true
-            })
+        left.attributes[skip..].iter().position(|l| l == r).map_or(false, |p| {
+            skip += p;
+            true
+        })
     })
 }
 

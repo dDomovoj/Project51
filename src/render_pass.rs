@@ -150,7 +150,9 @@ pub struct CustomPassDef;
 
 impl IRenderPassDef for CustomPassDef {
     const NAME: &'static str = "Render 3d";
+
     type TextureSet = FullTextureSet;
+
     fn vertex_shader() -> &'static SpirvShader {
         &VERTEX
     }
@@ -197,16 +199,12 @@ pub struct BaseRender<D: IRenderPassDef> {
 // }
 
 impl<B: ExtendedBackend, D: IRenderPassDef> RenderPlugin<B> for BaseRender<D> {
-    fn on_build<'a, 'b>(
-        &mut self, _world: &mut World, builder: &mut DispatcherBuilder<'a, 'b>,
-    ) -> Result<(), Error> {
+    fn on_build<'a, 'b>(&mut self, _world: &mut World, builder: &mut DispatcherBuilder<'a, 'b>) -> Result<(), Error> {
         builder.add(VisibilitySortingSystem::new(), "visibility_system", &[]);
         Ok(())
     }
 
-    fn on_plan(
-        &mut self, plan: &mut RenderPlan<B>, _factory: &mut Factory<B>, _world: &World,
-    ) -> Result<(), Error> {
+    fn on_plan(&mut self, plan: &mut RenderPlan<B>, _factory: &mut Factory<B>, _world: &World) -> Result<(), Error> {
         plan.extend_target(self.target, move |ctx| {
             ctx.add(RenderOrder::Opaque, BaseDrawDesc::<B, D>::new().builder())?;
             ctx.add(
@@ -223,21 +221,16 @@ impl<B: ExtendedBackend, D: IRenderPassDef> RenderPlugin<B> for BaseRender<D> {
 
 // region - IRenderPassDef
 
-/// Define drawing opaque 3d meshes with specified shaders and texture set
 pub trait IRenderPassDef: 'static + std::fmt::Debug + Send + Sync {
-    /// The human readable name of this pass
     const NAME: &'static str;
 
     /// The [mtl::StaticTextureSet] type implementation for this pass
     type TextureSet: for<'a> StaticTextureSet<'a>;
 
-    /// Returns the vertex `SpirvShader` which will be used for this pass
     fn vertex_shader() -> &'static SpirvShader;
 
-    /// Returns the fragment `SpirvShader` which will be used for this pass
     fn fragment_shader() -> &'static SpirvShader;
 
-    /// Returns the `VertexFormat` of this pass
     fn base_format() -> Vec<VertexFormat>;
 }
 
@@ -251,7 +244,6 @@ pub struct BaseDrawDesc<B: ExtendedBackend, T: IRenderPassDef> {
 }
 
 impl<B: ExtendedBackend, T: IRenderPassDef> BaseDrawDesc<B, T> {
-    /// Create pass in default configuration
     pub fn new() -> Self {
         Default::default()
     }
@@ -259,16 +251,13 @@ impl<B: ExtendedBackend, T: IRenderPassDef> BaseDrawDesc<B, T> {
 
 impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawDesc<B, T> {
     fn build(
-        self, _ctx: &GraphContext<B>, factory: &mut Factory<B>, _queue: QueueId, _aux: &World,
-        framebuffer_width: u32, framebuffer_height: u32, subpass: hal::pass::Subpass<'_, B>,
-        _buffers: Vec<NodeBuffer>, _images: Vec<NodeImage>,
+        self, _ctx: &GraphContext<B>, factory: &mut Factory<B>, _queue: QueueId, _aux: &World, framebuffer_width: u32,
+        framebuffer_height: u32, subpass: hal::pass::Subpass<'_, B>, _buffers: Vec<NodeBuffer>,
+        _images: Vec<NodeImage>,
     ) -> Result<Box<dyn RenderGroup<B, World>>, failure::Error> {
         // profile_scope_impl!("build");
 
-        let env = EnvironmentSub::new(
-            factory,
-            [ShaderStageFlags::VERTEX, ShaderStageFlags::FRAGMENT],
-        )?;
+        let env = EnvironmentSub::new(factory, [ShaderStageFlags::VERTEX, ShaderStageFlags::FRAGMENT])?;
         // let materials = MaterialSub::new(factory)?;
         let mut vertex_format_base = T::base_format();
 
@@ -320,8 +309,8 @@ pub struct BaseDraw<B: ExtendedBackend, T: IRenderPassDef> {
 
 impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
     fn prepare(
-        &mut self, factory: &Factory<B>, _queue: QueueId, index: usize,
-        _subpass: hal::pass::Subpass<'_, B>, resources: &World,
+        &mut self, factory: &Factory<B>, _queue: QueueId, index: usize, _subpass: hal::pass::Subpass<'_, B>,
+        resources: &World,
     ) -> PrepareResult {
         // profile_scope_impl!("prepare opaque");
 
@@ -393,8 +382,8 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
     }
 
     fn draw_inline(
-        &mut self, mut encoder: RenderPassEncoder<'_, B>, index: usize,
-        _subpass: hal::pass::Subpass<'_, B>, resources: &World,
+        &mut self, mut encoder: RenderPassEncoder<'_, B>, index: usize, _subpass: hal::pass::Subpass<'_, B>,
+        resources: &World,
     ) {
         // profile_scope_impl!("draw opaque");
 
@@ -412,9 +401,7 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
                 //         .bind(&self.pipeline_layout, 1, mat_id, &mut encoder);
                 for (mesh_id, batch_data) in batches {
                     debug_assert!(mesh_storage.contains_id(*mesh_id));
-                    if let Some(mesh) =
-                        B::unwrap_custom_mesh(unsafe { mesh_storage.get_by_id_unchecked(*mesh_id) })
-                    {
+                    if let Some(mesh) = B::unwrap_custom_mesh(unsafe { mesh_storage.get_by_id_unchecked(*mesh_id) }) {
                         mesh.bind_and_draw(
                             0,
                             &self.vertex_format_base,
@@ -433,12 +420,8 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
     fn dispose(self: Box<Self>, factory: &mut Factory<B>, _aux: &World) {
         // profile_scope_impl!("dispose");
         unsafe {
-            factory
-                .device()
-                .destroy_graphics_pipeline(self.pipeline_basic);
-            factory
-                .device()
-                .destroy_pipeline_layout(self.pipeline_layout);
+            factory.device().destroy_graphics_pipeline(self.pipeline_basic);
+            factory.device().destroy_pipeline_layout(self.pipeline_layout);
         }
     }
 }
@@ -457,26 +440,19 @@ pub struct BaseDrawTransparentDesc<B: ExtendedBackend, T: IRenderPassDef> {
 impl<B: ExtendedBackend, T: IRenderPassDef> BaseDrawTransparentDesc<B, T> {
     /// Create pass in default configuration
     pub fn new() -> Self {
-        Self {
-            marker: PhantomData,
-        }
+        Self { marker: PhantomData }
     }
 }
 
-impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroupDesc<B, World>
-    for BaseDrawTransparentDesc<B, T>
-{
+impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawTransparentDesc<B, T> {
     fn build(
-        self, _ctx: &GraphContext<B>, factory: &mut Factory<B>, _queue: QueueId, _aux: &World,
-        framebuffer_width: u32, framebuffer_height: u32, subpass: hal::pass::Subpass<'_, B>,
-        _buffers: Vec<NodeBuffer>, _images: Vec<NodeImage>,
+        self, _ctx: &GraphContext<B>, factory: &mut Factory<B>, _queue: QueueId, _aux: &World, framebuffer_width: u32,
+        framebuffer_height: u32, subpass: hal::pass::Subpass<'_, B>, _buffers: Vec<NodeBuffer>,
+        _images: Vec<NodeImage>,
     ) -> Result<Box<dyn RenderGroup<B, World>>, failure::Error> {
         let env = EnvironmentSub::new(
             factory,
-            [
-                hal::pso::ShaderStageFlags::VERTEX,
-                hal::pso::ShaderStageFlags::FRAGMENT,
-            ],
+            [hal::pso::ShaderStageFlags::VERTEX, hal::pso::ShaderStageFlags::FRAGMENT],
         )?;
 
         // let materials = MaterialSub::new(factory)?;
@@ -532,8 +508,8 @@ pub struct BaseDrawTransparent<B: ExtendedBackend, T: IRenderPassDef> {
 
 impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparent<B, T> {
     fn prepare(
-        &mut self, factory: &Factory<B>, _queue: QueueId, index: usize,
-        _subpass: hal::pass::Subpass<'_, B>, resources: &World,
+        &mut self, factory: &Factory<B>, _queue: QueueId, index: usize, _subpass: hal::pass::Subpass<'_, B>,
+        resources: &World,
     ) -> PrepareResult {
         // profile_scope_impl!("prepare transparent");
 
@@ -593,8 +569,8 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
     }
 
     fn draw_inline(
-        &mut self, mut encoder: RenderPassEncoder<'_, B>, index: usize,
-        _subpass: hal::pass::Subpass<'_, B>, resources: &World,
+        &mut self, mut encoder: RenderPassEncoder<'_, B>, index: usize, _subpass: hal::pass::Subpass<'_, B>,
+        resources: &World,
     ) {
         // profile_scope_impl!("draw transparent");
 
@@ -610,27 +586,20 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
         if self.models.bind(index, models_loc, 0, encoder) {
             for (&mat, batches) in self.static_batches.iter() {
                 // if self.materials.loaded(mat) {
-                    // self.materials.bind(layout, 1, mat, encoder);
-                    for (mesh, range) in batches {
-                        // debug_assert!(mesh_storage.contains_id(*mesh));
-                        if let Some(mesh) = B::unwrap_custom_mesh(unsafe {
-                            mesh_storage.get_by_id_unchecked(*mesh)
-                        }) {
-                            if let Err(error) = mesh.bind_and_draw(
-                                0,
-                                &self.vertex_format_base,
-                                range.clone(),
-                                encoder,
-                            ) {
-                                log::warn!(
+                // self.materials.bind(layout, 1, mat, encoder);
+                for (mesh, range) in batches {
+                    // debug_assert!(mesh_storage.contains_id(*mesh));
+                    if let Some(mesh) = B::unwrap_custom_mesh(unsafe { mesh_storage.get_by_id_unchecked(*mesh) }) {
+                        if let Err(error) = mesh.bind_and_draw(0, &self.vertex_format_base, range.clone(), encoder) {
+                            log::warn!(
                                     "Trying to draw a mesh that lacks {:?} vertex attributes. Pass {} requires attributes {:?}.",
                                     error.not_found.attributes,
                                     T::NAME,
                                     T::base_format(),
                                 );
-                            }
                         }
                     }
+                }
                 // }
             }
         }
@@ -638,12 +607,8 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
 
     fn dispose(self: Box<Self>, factory: &mut Factory<B>, _aux: &World) {
         unsafe {
-            factory
-                .device()
-                .destroy_graphics_pipeline(self.pipeline_basic);
-            factory
-                .device()
-                .destroy_pipeline_layout(self.pipeline_layout);
+            factory.device().destroy_graphics_pipeline(self.pipeline_basic);
+            factory.device().destroy_pipeline_layout(self.pipeline_layout);
         }
     }
 }
@@ -653,41 +618,26 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
 // region - Common
 
 fn build_pipelines<B: Backend, T: IRenderPassDef>(
-    factory: &Factory<B>, subpass: hal::pass::Subpass<'_, B>, framebuffer_width: u32,
-    framebuffer_height: u32, vertex_format_base: &[VertexFormat], transparent: bool,
-    layouts: Vec<&B::DescriptorSetLayout>,
+    factory: &Factory<B>, subpass: hal::pass::Subpass<'_, B>, framebuffer_width: u32, framebuffer_height: u32,
+    vertex_format_base: &[VertexFormat], transparent: bool, layouts: Vec<&B::DescriptorSetLayout>,
 ) -> Result<(Vec<B::GraphicsPipeline>, B::PipelineLayout), failure::Error> {
-    let pipeline_layout = unsafe {
-        factory
-            .device()
-            .create_pipeline_layout(layouts, None as Option<(_, _)>)
-    }?;
+    let pipeline_layout = unsafe { factory.device().create_pipeline_layout(layouts, None as Option<(_, _)>) }?;
 
     let vertex_desc = vertex_format_base
         .iter()
         .map(|f| (f.clone(), pso::VertexInputRate::Vertex))
-        .chain(Some((
-            VertexArgs::vertex(),
-            pso::VertexInputRate::Instance(1),
-        )))
+        .chain(Some((VertexArgs::vertex(), pso::VertexInputRate::Instance(1))))
         .collect::<Vec<_>>();
 
     let shader_vertex_basic = unsafe { T::vertex_shader().module(factory).unwrap() };
     let shader_fragment = unsafe { T::fragment_shader().module(factory).unwrap() };
     let pipe_desc = PipelineDescBuilder::new()
         .with_vertex_desc(&vertex_desc)
-        .with_shaders(util::simple_shader_set(
-            &shader_vertex_basic,
-            Some(&shader_fragment),
-        ))
+        .with_shaders(util::simple_shader_set(&shader_vertex_basic, Some(&shader_fragment)))
         .with_layout(&pipeline_layout)
         .with_subpass(subpass)
         .with_framebuffer_size(framebuffer_width, framebuffer_height)
-        .with_face_culling(if transparent {
-            pso::Face::NONE
-        } else {
-            pso::Face::BACK
-        })
+        .with_face_culling(if transparent { pso::Face::NONE } else { pso::Face::BACK })
         .with_depth_test(pso::DepthTest {
             fun: pso::Comparison::Less,
             write: !transparent,
@@ -701,11 +651,7 @@ fn build_pipelines<B: Backend, T: IRenderPassDef>(
             },
         }]);
 
-    let pipelines = {
-        PipelinesBuilder::new()
-            .with_pipeline(pipe_desc)
-            .build(factory, None)
-    };
+    let pipelines = { PipelinesBuilder::new().with_pipeline(pipe_desc).build(factory, None) };
 
     unsafe {
         factory.destroy_shader_module(shader_vertex_basic);

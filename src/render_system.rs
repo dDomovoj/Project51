@@ -1,31 +1,31 @@
 //! Renderer system
 use amethyst::assets::{AssetStorage, Handle, HotReloadStrategy, ProcessingState, ThreadPool};
 use amethyst::core::{
-    components::Transform,
-    ecs::{Read, ReadExpect, ReadStorage, RunNow, System, SystemData, World, Write, WriteExpect},
+    // components::Transform,
+    ecs::{Read, ReadExpect, ReadStorage, System, SystemData, World, Write}, // WriteExpect, RunNow},
     timing::Time,
-    Hidden, HiddenPropagate,
+    // Hidden, HiddenPropagate,
 };
-use amethyst::renderer::palette::{LinSrgba, Srgba};
+// use amethyst::renderer::palette::{LinSrgba, Srgba};
 use amethyst::renderer::rendy::{
-    self,
-    command::{Families, QueueId},
-    factory::{Factory, ImageState},
-    graph::{Graph, GraphBuilder},
-    texture::palette::{load_from_linear_rgba, load_from_srgba},
+    // self,
+    command::QueueId, //, Families},
+    factory::Factory, // ImageState},
+                      // graph::{Graph, GraphBuilder},
+                      // texture::palette::{load_from_linear_rgba, load_from_srgba},
 };
-use amethyst::renderer::{
-    camera::{ActiveCamera, Camera},
-    debug_drawing::DebugLinesComponent,
-    light::Light,
-    mtl::{Material, MaterialDefaults},
-    resources::Tint,
-    skinning::JointTransforms,
-    sprite::SpriteRender,
-    transparent::Transparent,
-    types::{Backend, Texture},
-    visibility::Visibility,
-};
+// use amethyst::renderer::{
+// camera::{ActiveCamera, Camera},
+// debug_drawing::DebugLinesComponent,
+// light::Light,
+// mtl::{Material, MaterialDefaults},
+// resources::Tint,
+// skinning::JointTransforms,
+// sprite::SpriteRender,
+// transparent::Transparent,
+// types::{Backend, Texture},
+// visibility::Visibility,
+// };
 use std::{marker::PhantomData, sync::Arc};
 
 #[cfg(feature = "profiler")]
@@ -42,7 +42,7 @@ use thread_profiler::profile_scope;
 //     fn builder(&mut self, factory: &mut Factory<B>, world: &World) -> GraphBuilder<B, World>;
 // }
 
-use amethyst::renderer::system::GraphCreator;
+// use amethyst::renderer::system::GraphCreator;
 
 use crate::render_mesh::{ExtendedBackend, Mesh};
 
@@ -185,9 +185,7 @@ impl<'a, B: ExtendedBackend> System<'a> for MeshProcessorSystem<B> {
         ReadExpect<'a, Factory<B>>,
     );
 
-    fn run(
-        &mut self, (mut mesh_storage, queue_id, time, pool, strategy, factory): Self::SystemData,
-    ) {
+    fn run(&mut self, (mut mesh_storage, queue_id, time, pool, strategy, factory): Self::SystemData) {
         // #[cfg(feature = "profiler")]
         // profile_scope!("mesh_processor");
 

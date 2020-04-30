@@ -1,18 +1,16 @@
 use amethyst::renderer::rendy::util::types::vertex::{
-    AsAttribute, AsVertex, Normal, Position, TexCoord, VertexFormat,
+    AsVertex,
+    VertexFormat, // AsAttribute, Normal, Position, TexCoord,
 };
-use gfx_hal::format::Format;
+// use gfx_hal::format::Format;
 use std::fmt::Debug;
 
 use glsl_layout::*;
 
-use amethyst::core::{
-    Transform,
-    math::Matrix4,
-};
-use amethyst::renderer::pod::{*, Tint};
+use amethyst::core::{math::Matrix4, Transform};
+// use amethyst::renderer::pod::{*, Tint};
 use amethyst::renderer::rendy::mesh::Model;
-use amethyst::renderer::resources::Tint as TintComponent;
+// use amethyst::renderer::resources::Tint as TintComponent;
 
 // //! GPU POD data types.
 // use crate::{
@@ -21,10 +19,8 @@ use amethyst::renderer::resources::Tint as TintComponent;
 //     sprite::{SpriteRender, SpriteSheet},
 //     types::Texture,
 // };
-use amethyst::assets::{AssetStorage, Handle};
-use amethyst::core::{
-    math::{convert, Vector4},
-};
+// use amethyst::assets::{AssetStorage, Handle};
+use amethyst::core::math::convert;
 use glsl_layout::*;
 
 // /// Type for material idx of vertex.
@@ -89,8 +85,8 @@ impl VertexArgs {
     /// Populate `MaterialVertexArgs` from the supplied `Transform` and `TintComponent`
     #[inline]
     pub fn from_object_data(
-        transform: &Transform, 
-        // tint: Option<&TintComponent>, 
+        transform: &Transform,
+        // tint: Option<&TintComponent>,
         // mtl_idx: u32,
     ) -> Self {
         let model: [[f32; 4]; 4] = convert::<_, Matrix4<f32>>(*transform.global_matrix()).into();
@@ -113,30 +109,4 @@ impl VertexArgs {
 // pub struct CustomUniformArgs {
 //     /// The value each vertex is scaled by.
 //     pub scale: float,
-// }
-
-// /// Vertex format with position, normal and UV texture coordinate attributes.
-// #[repr(C)]
-// #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-// pub struct PosNorMatTex {
-//     /// Position of the vertex in 3D space.
-//     pub position: Position,
-//     /// Normal vector of the vertex.
-//     pub normal: Normal,
-//     /// index of material applied to vertex.
-//     pub mtl_idx: MaterialIdx,
-//     /// UV texture coordinates used by the vertex.
-//     pub tex_coord: TexCoord,
-// }
-
-// impl AsVertex for PosNorMatTex {
-//     fn vertex() -> VertexFormat {
-//         VertexFormat::new((
-//             Position::vertex(),
-//             Normal::vertex(),
-//             MaterialIdx::vertex(),
-//             TexCoord::vertex(),
-//         ))
-//     }
 // }

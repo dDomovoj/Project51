@@ -1,21 +1,21 @@
 //! Module for mesh support.
-use amethyst::assets::Asset;
-use amethyst::assets::{AssetPrefab, AssetStorage, Format, Handle, Loader, PrefabData, ProgressCounter};
+use amethyst::assets::{Asset, Handle};
+// use amethyst::assets::{AssetPrefab, AssetStorage, Format, Handle, Loader, PrefabData, ProgressCounter};
 use amethyst::core::ecs::DenseVecStorage;
-use amethyst::core::ecs::{Entity, Read, ReadExpect, WriteStorage};
-use amethyst::error::Error;
+// use amethyst::core::ecs::{Entity, Read, ReadExpect, WriteStorage};
+// use amethyst::error::Error;
 use amethyst::renderer::{
-    shape::{FromShape, ShapePrefab},
+    // shape::{FromShape, ShapePrefab},
     types::Backend,
 };
 use serde::{Deserialize, Serialize};
 
 use amethyst::renderer::rendy::{
     self as rendy,
-    command::{EncoderCommon, Graphics, QueueId, RenderPassEncoder, Supports},
+    command::{QueueId, RenderPassEncoder},//EncoderCommon, Graphics, Supports},
     factory::{BufferState, Factory},
     memory::{Data, Upload, Write},
-    mesh::{AsVertex, Normal, Position, /*Tangent, */ TexCoord, VertexFormat},
+    mesh::{AsVertex, VertexFormat},
     resource::{Buffer, BufferInfo, Escape},
     util::cast_cow,
 };
@@ -437,33 +437,33 @@ impl<'a> MeshBuilder<'a> {
         }
     }
 
-    /// Set indices buffer to the `MeshBuilder`
-    pub fn with_indices<I>(mut self, indices: I) -> Self
-    where
-        I: Into<Indices<'a>>,
-    {
-        self.set_indices(indices);
-        self
-    }
+    // /// Set indices buffer to the `MeshBuilder`
+    // pub fn with_indices<I>(mut self, indices: I) -> Self
+    // where
+    //     I: Into<Indices<'a>>,
+    // {
+    //     self.set_indices(indices);
+    //     self
+    // }
 
-    /// Set indices buffer to the `MeshBuilder`
-    pub fn set_indices<I>(&mut self, indices: I) -> &mut Self
-    where
-        I: Into<Indices<'a>>,
-    {
-        self.indices = match indices.into() {
-            // Indices::None => None,
-            // Indices::U16(i) => Some(RawIndices {
-            //     indices: cast_cow(i),
-            //     index_type: gfx_hal::IndexType::U16,
-            // }),
-            Indices::U32(i) => Some(RawIndices {
-                indices: cast_cow(i),
-                index_type: gfx_hal::IndexType::U32,
-            }),
-        };
-        self
-    }
+    // /// Set indices buffer to the `MeshBuilder`
+    // pub fn set_indices<I>(&mut self, indices: I) -> &mut Self
+    // where
+    //     I: Into<Indices<'a>>,
+    // {
+    //     self.indices = match indices.into() {
+    //         // Indices::None => None,
+    //         // Indices::U16(i) => Some(RawIndices {
+    //         //     indices: cast_cow(i),
+    //         //     index_type: gfx_hal::IndexType::U16,
+    //         // }),
+    //         Indices::U32(i) => Some(RawIndices {
+    //             indices: cast_cow(i),
+    //             index_type: gfx_hal::IndexType::U32,
+    //         }),
+    //     };
+    //     self
+    // }
 
     /// Add another vertices to the `MeshBuilder`
     pub fn with_vertices<V, D>(mut self, vertices: D) -> Self
@@ -488,21 +488,21 @@ impl<'a> MeshBuilder<'a> {
         self
     }
 
-    /// Sets the primitive type of the mesh.
-    ///
-    /// By default, meshes are constructed as triangle lists.
-    pub fn with_prim_type(mut self, prim: gfx_hal::Primitive) -> Self {
-        self.prim = prim;
-        self
-    }
+    // /// Sets the primitive type of the mesh.
+    // ///
+    // /// By default, meshes are constructed as triangle lists.
+    // pub fn with_prim_type(mut self, prim: gfx_hal::Primitive) -> Self {
+    //     self.prim = prim;
+    //     self
+    // }
 
-    /// Sets the primitive type of the mesh.
-    ///
-    /// By default, meshes are constructed as triangle lists.
-    pub fn set_prim_type(&mut self, prim: gfx_hal::Primitive) -> &mut Self {
-        self.prim = prim;
-        self
-    }
+    // /// Sets the primitive type of the mesh.
+    // ///
+    // /// By default, meshes are constructed as triangle lists.
+    // pub fn set_prim_type(&mut self, prim: gfx_hal::Primitive) -> &mut Self {
+    //     self.prim = prim;
+    //     self
+    // }
 
     /// Builds and returns the new mesh.
     ///
@@ -643,24 +643,24 @@ impl<B> BackendMesh<B>
 where
     B: gfx_hal::Backend,
 {
-    /// Build new mesh with `MeshBuilder`
-    pub fn builder<'a>() -> MeshBuilder<'a> {
-        MeshBuilder::new()
-    }
+    // /// Build new mesh with `MeshBuilder`
+    // pub fn builder<'a>() -> MeshBuilder<'a> {
+    //     MeshBuilder::new()
+    // }
 
-    /// gfx_hal::Primitive type of the `Mesh`
-    pub fn primitive(&self) -> gfx_hal::Primitive {
-        self.prim
-    }
+    // /// gfx_hal::Primitive type of the `Mesh`
+    // pub fn primitive(&self) -> gfx_hal::Primitive {
+    //     self.prim
+    // }
 
-    /// Returns the number of vertices that will be drawn
-    /// in the mesh.  For a mesh with no index buffer,
-    /// this is the same as the number of vertices, or for
-    /// a mesh with indices, this is the same as the number
-    /// of indices.
-    pub fn len(&self) -> u32 {
-        self.len
-    }
+    // /// Returns the number of vertices that will be drawn
+    // /// in the mesh.  For a mesh with no index buffer,
+    // /// this is the same as the number of vertices, or for
+    // /// a mesh with indices, this is the same as the number
+    // /// of indices.
+    // pub fn len(&self) -> u32 {
+    //     self.len
+    // }
 
     fn get_vertex_iter<'a>(
         &'a self, formats: &[VertexFormat],
@@ -688,26 +688,26 @@ where
         Ok(vertex.into_iter().map(move |offset| (buffer, offset)))
     }
 
-    /// Bind buffers to specified attribute locations.
-    pub fn bind<C>(
-        &self, first_binding: u32, formats: &[VertexFormat], encoder: &mut EncoderCommon<'_, B, C>,
-    ) -> Result<u32, Incompatible>
-    where
-        C: Supports<Graphics>,
-    {
-        let vertex_iter = self.get_vertex_iter(formats)?;
-        match self.index_buffer.as_ref() {
-            Some(index_buffer) => unsafe {
-                encoder.bind_index_buffer(index_buffer.buffer.raw(), 0, index_buffer.index_type);
-                encoder.bind_vertex_buffers(first_binding, vertex_iter);
-            },
-            None => unsafe {
-                encoder.bind_vertex_buffers(first_binding, vertex_iter);
-            },
-        }
+    // /// Bind buffers to specified attribute locations.
+    // pub fn bind<C>(
+    //     &self, first_binding: u32, formats: &[VertexFormat], encoder: &mut EncoderCommon<'_, B, C>,
+    // ) -> Result<u32, Incompatible>
+    // where
+    //     C: Supports<Graphics>,
+    // {
+    //     let vertex_iter = self.get_vertex_iter(formats)?;
+    //     match self.index_buffer.as_ref() {
+    //         Some(index_buffer) => unsafe {
+    //             encoder.bind_index_buffer(index_buffer.buffer.raw(), 0, index_buffer.index_type);
+    //             encoder.bind_vertex_buffers(first_binding, vertex_iter);
+    //         },
+    //         None => unsafe {
+    //             encoder.bind_vertex_buffers(first_binding, vertex_iter);
+    //         },
+    //     }
 
-        Ok(self.len)
-    }
+    //     Ok(self.len)
+    // }
 
     /// Bind buffers to specified attribute locations and issue draw calls with given instance range.
     pub fn bind_and_draw(

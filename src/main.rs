@@ -5,7 +5,6 @@ use amethyst::{
     renderer::{
         palette::Srgb,
         plugins::{RenderSkybox, RenderToWindow},
-        // types::DefaultBackend,
         RenderingBundle,
     },
     utils::application_root_dir,
@@ -15,7 +14,6 @@ use amethyst::{
 mod block;
 mod bundles;
 mod game_start;
-// mod render_bundle;
 mod render_mesh;
 mod render_pass;
 mod render_plugins;
@@ -29,13 +27,10 @@ use crate::game_start::GameStart;
 use crate::render_mesh::DefaultExtendedBackend;
 use crate::render_pass::Render3D;
 use crate::render_plugins::RenderDebugLines;
-use crate::render_system::{MeshProcessorSystem};
+use crate::render_system::MeshProcessorSystem;
 
 #[macro_use]
 extern crate guard;
-
-// #[macro_use]
-// extern crate glsl_layout;
 
 fn main() -> Result<(), Error> {
     amethyst::start_logger(Default::default());
@@ -68,16 +63,14 @@ fn main() -> Result<(), Error> {
                     Srgb::new(0.82, 0.51, 0.50),
                     Srgb::new(0.18, 0.11, 0.85),
                 ))
-                // .with_plugin(RenderShaded3D::default())
                 .with_plugin(Render3D::default())
-                .with_plugin(RenderDebugLines::default())
+                .with_plugin(RenderDebugLines::default()),
         )?
         .with(
             MeshProcessorSystem::<DefaultExtendedBackend>::default(),
             "extended_mesh_processor",
             &[],
         );
-        // .with(ExtendedRenderingSystem::<DefaultExtendedBackend>::default(), "mesh_processor", &[]);
 
     let mut game = Application::build(assets_dir, GameStart)?.build(game_data)?;
     game.run();

@@ -27,6 +27,7 @@ use amethyst::{
             // texture::palette::{load_from_srgba, load_from_srgb, load_from_linear_rgba},
             // util::types::vertex::{PosTex, PosColor, Color},
         },
+        transparent::Transparent,
         // shape::{Shape},
         // types::{Mesh, MeshData},//, Texture},
         // Camera,
@@ -94,6 +95,7 @@ impl Block {
 
         world.create_entity()
             .with(mesh)
+            // .with(Transparent::default())
             // .with(mat)
     }
 

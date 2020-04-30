@@ -214,7 +214,7 @@ void main() {
     // vec2 final_tex_coords   = tex_coords(vertex.tex_coord, uv_offset);
     // vec4 albedo_alpha       = texture(albedo, final_tex_coords);
     // float alpha             = albedo_alpha.a;
-    float alpha             = 1.0;
+    float alpha             = 0.99;
     // if(alpha < alpha_cutoff) discard;
 
     // vec3 albedo = albedo_alpha.rgb;

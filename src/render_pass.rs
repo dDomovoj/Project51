@@ -1,4 +1,7 @@
-use crate::render_mesh::{ExtendedBackend, Mesh};
+/// Custom version of
+/// use amethyst::renderer::pass::DrawBase3D;
+
+use crate::render_mesh::{ExtendedBackend, Mesh, MeshElement};
 use amethyst::{
     assets::{AssetStorage, Handle},
     core::{
@@ -9,7 +12,7 @@ use amethyst::{
     renderer::{
         batch::{GroupIterator, OrderedTwoLevelBatch, TwoLevelBatch},
         bundle::Target,
-        mtl::{FullTextureSet, Material, StaticTextureSet}, //, TexAlbedo, TexEmission},
+        // mtl::{FullTextureSet, Material, StaticTextureSet}, //, TexAlbedo, TexEmission},
         pipeline::{PipelineDescBuilder, PipelinesBuilder},
         // pod::VertexArgs,
         rendy::{
@@ -27,8 +30,8 @@ use amethyst::{
             mesh::{AsVertex, Normal, Position, /*Tangent, */ TexCoord, VertexFormat},
             shader::{Shader, SpirvShader},
         },
-        resources::Tint,
-        submodules::{DynamicVertexBuffer, EnvironmentSub, MaterialId, MaterialSub},
+        // resources::Tint,
+        submodules::{DynamicVertexBuffer, EnvironmentSub},//, MaterialId, MaterialSub},
         transparent::Transparent,
         types::Backend, //, Mesh},
         util,
@@ -151,7 +154,7 @@ pub struct CustomPassDef;
 impl IRenderPassDef for CustomPassDef {
     const NAME: &'static str = "Render 3d";
 
-    type TextureSet = FullTextureSet;
+    // type TextureSet = FullTextureSet;
 
     fn vertex_shader() -> &'static SpirvShader {
         &VERTEX
@@ -207,10 +210,10 @@ impl<B: ExtendedBackend, D: IRenderPassDef> RenderPlugin<B> for BaseRender<D> {
     fn on_plan(&mut self, plan: &mut RenderPlan<B>, _factory: &mut Factory<B>, _world: &World) -> Result<(), Error> {
         plan.extend_target(self.target, move |ctx| {
             ctx.add(RenderOrder::Opaque, BaseDrawDesc::<B, D>::new().builder())?;
-            ctx.add(
-                RenderOrder::Transparent,
-                BaseDrawTransparentDesc::<B, D>::new().builder(),
-            )?;
+            // ctx.add(
+            //     RenderOrder::Transparent,
+            //     BaseDrawTransparentDesc::<B, D>::new().builder(),
+            // )?;
             Ok(())
         });
         Ok(())
@@ -224,8 +227,8 @@ impl<B: ExtendedBackend, D: IRenderPassDef> RenderPlugin<B> for BaseRender<D> {
 pub trait IRenderPassDef: 'static + std::fmt::Debug + Send + Sync {
     const NAME: &'static str;
 
-    /// The [mtl::StaticTextureSet] type implementation for this pass
-    type TextureSet: for<'a> StaticTextureSet<'a>;
+    // /// The [mtl::StaticTextureSet] type implementation for this pass
+    // type TextureSet: for<'a> StaticTextureSet<'a>;
 
     fn vertex_shader() -> &'static SpirvShader;
 
@@ -291,8 +294,7 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDr
 
 // region - BaseDraw
 
-/// Base implementation of a 3D render pass which can be consumed by actual 3D render passes,
-/// such as [pass::pbr::DrawPbr]
+/// Base implementation of a 3D render pass
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
 pub struct BaseDraw<B: ExtendedBackend, T: IRenderPassDef> {
@@ -315,22 +317,27 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
         // profile_scope_impl!("prepare opaque");
 
         let (
-            mesh_storage,
+            // meshes_assets,
+            mesh_elements_assets,
             visibility,
             _transparent,
             _hiddens,
             _hiddens_prop,
             meshes,
+            mesh_elements,
             // materials,
             transforms,
             // tints,
         ) = <(
-            Read<'_, AssetStorage<Mesh>>,
+            // Read<'_, AssetStorage<Mesh>>,
+            Read<'_, AssetStorage<MeshElement>>,
             ReadExpect<'_, Visibility>,
             ReadStorage<'_, Transparent>,
             ReadStorage<'_, Hidden>,
             ReadStorage<'_, HiddenPropagate>,
-            ReadStorage<'_, Handle<Mesh>>,
+            // ReadStorage<'_, Handle<Mesh>>,
+            ReadStorage<'_, Mesh>,
+            ReadStorage<'_, Handle<MeshElement>>,
             // ReadStorage<'_, Handle<Material>>,
             ReadStorage<'_, Transform>,
             // ReadStorage<'_, Tint>,
@@ -352,17 +359,23 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
             (static_input(), &visibility.visible_unordered)
                 .join()
                 // .map(|((mat, mesh, tform, tint), _)| {
-                .map(|((mesh, tform), _)| {
+                // .map(|((element, tform), _)| {
+                .flat_map(|((mesh, tform), _)| {
+                    let args = VertexArgs::from_object_data(tform);
+                    // (mesh.element.id(), args)
+
+                    mesh.elements.iter().map(move |e| { (e.id(), args) })
+                    // let elements = mesh.elements;
+                    // elements.map(|e| { (e.id(), args) })
                     // ((mat, mesh.id()), VertexArgs::from_object_data(tform, tint, 0))
-                    (mesh.id(), VertexArgs::from_object_data(tform))
                 })
                 // .for_each_group(|(mat, mesh_id), data| {
-                .for_each_group(|mesh_id, data| {
-                    if mesh_storage.contains_id(mesh_id) {
+                .for_each_group(|mesh_element_id, data| {
+                    if mesh_elements_assets.contains_id(mesh_element_id) {
                         // if let Some((mat, _)) = materials_ref.insert(factory, resources, mat) {
                         //     statics_ref.insert(mat, mesh_id, data.drain(..));
                         // }
-                        statics_ref.insert(0, mesh_id, data.drain(..));
+                        statics_ref.insert(0, mesh_element_id, data.drain(..));
                     }
                 });
         }
@@ -387,7 +400,8 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
     ) {
         // profile_scope_impl!("draw opaque");
 
-        let mesh_storage = <Read<'_, AssetStorage<Mesh>>>::fetch(resources);
+        // let mesh_storage = <Read<'_, AssetStorage<Mesh>>>::fetch(resources);
+        let mesh_elements_assets = <Read<'_, AssetStorage<MeshElement>>>::fetch(resources);
         let models_loc = self.vertex_format_base.len() as u32;
 
         encoder.bind_graphics_pipeline(&self.pipeline_basic);
@@ -395,14 +409,14 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
 
         if self.models.bind(index, models_loc, 0, &mut encoder) {
             let mut instances_drawn = 0;
-            for (&mat_id, batches) in self.static_batches.iter() {
+            for (&_mat_id, batches) in self.static_batches.iter() {
                 // if self.materials.loaded(mat_id) {
                 //     self.materials
                 //         .bind(&self.pipeline_layout, 1, mat_id, &mut encoder);
-                for (mesh_id, batch_data) in batches {
-                    debug_assert!(mesh_storage.contains_id(*mesh_id));
-                    if let Some(mesh) = B::unwrap_custom_mesh(unsafe { mesh_storage.get_by_id_unchecked(*mesh_id) }) {
-                        mesh.bind_and_draw(
+                for (mesh_element_id, batch_data) in batches {
+                    debug_assert!(mesh_elements_assets.contains_id(*mesh_element_id));
+                    if let Some(mesh_element) = B::unwrap_mesh_element(unsafe { mesh_elements_assets.get_by_id_unchecked(*mesh_element_id) }) {
+                        mesh_element.bind_and_draw(
                             0,
                             &self.vertex_format_base,
                             instances_drawn..instances_drawn + batch_data.len() as u32,
@@ -427,6 +441,8 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
 }
 
 // endregion
+
+/*
 
 // region - BaseDrawTransparentDesc
 
@@ -514,10 +530,10 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
         // profile_scope_impl!("prepare transparent");
 
         // let (mesh_storage, visibility, meshes, materials, transforms, tints) =
-        let (mesh_storage, visibility, meshes, transforms) = <(
-            Read<'_, AssetStorage<Mesh>>,
+        let (mesh_elements_assets, visibility, mesh_elements, transforms) = <(
+            Read<'_, AssetStorage<MeshElement>>,
             ReadExpect<'_, Visibility>,
-            ReadStorage<'_, Handle<Mesh>>,
+            ReadStorage<'_, Handle<MeshElement>>,
             // ReadStorage<'_, Handle<Material>>,
             ReadStorage<'_, Transform>,
             // ReadStorage<'_, Tint>,
@@ -534,25 +550,35 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
         let mut changed = false;
 
         // let mut joined = (&materials, &meshes, &transforms, tints.maybe()).join();
-        let mut joined = (&meshes, &transforms).join();
+        let mut joined = (&mesh_elements, &transforms).join();
         visibility
             .visible_ordered
             .iter()
             .filter_map(|e| joined.get_unchecked(e.id()))
             // .map(|(mat, mesh, tform, tint)| {
-            .map(|(mesh, tform)| {
+            // .map(|(mesh, tform)| {
+            //     // ((mat, mesh.id()), VertexArgs::from_object_data(tform, tint, 0))
+            //     (mesh.id(), VertexArgs::from_object_data(tform))
+            // })
+            // .flat_map(|(mesh, tform)| {
+            .map(|(element, tform)| {
+                let args = VertexArgs::from_object_data(tform);
+                let id = element.id();
+                (id, args)
+
+                // let elements = &mesh.elements;
+                // elements.iter().map(move |e| { (e.id(), args) })
                 // ((mat, mesh.id()), VertexArgs::from_object_data(tform, tint, 0))
-                (mesh.id(), VertexArgs::from_object_data(tform))
             })
             // .for_each_group(|(mat, mesh_id), data| {
-            .for_each_group(|mesh_id, data| {
-                if mesh_storage.contains_id(mesh_id) {
+            .for_each_group(|mesh_element_id, data| {
+                if mesh_elements_assets.contains_id(mesh_element_id) {
                     // if let Some((mat, this_changed)) = materials_ref.insert(factory, resources, mat)
                     // {
                     //     changed = changed || this_changed;
                     //     statics_ref.insert(mat, mesh_id, data.drain(..));
                     // }
-                    statics_ref.insert(0, mesh_id, data.drain(..));
+                    statics_ref.insert(0, mesh_element_id, data.drain(..));
                 }
             });
 
@@ -574,7 +600,7 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
     ) {
         // profile_scope_impl!("draw transparent");
 
-        let mesh_storage = <Read<'_, AssetStorage<Mesh>>>::fetch(resources);
+        let mesh_elements_assets = <Read<'_, AssetStorage<MeshElement>>>::fetch(resources);
         let layout = &self.pipeline_layout;
         let encoder = &mut encoder;
 
@@ -584,12 +610,12 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
         self.env.bind(index, layout, 0, encoder);
 
         if self.models.bind(index, models_loc, 0, encoder) {
-            for (&mat, batches) in self.static_batches.iter() {
+            for (&_mat, batches) in self.static_batches.iter() {
                 // if self.materials.loaded(mat) {
                 // self.materials.bind(layout, 1, mat, encoder);
                 for (mesh, range) in batches {
                     // debug_assert!(mesh_storage.contains_id(*mesh));
-                    if let Some(mesh) = B::unwrap_custom_mesh(unsafe { mesh_storage.get_by_id_unchecked(*mesh) }) {
+                    if let Some(mesh) = B::unwrap_mesh_element(unsafe { mesh_elements_assets.get_by_id_unchecked(*mesh) }) {
                         if let Err(error) = mesh.bind_and_draw(0, &self.vertex_format_base, range.clone(), encoder) {
                             log::warn!(
                                     "Trying to draw a mesh that lacks {:?} vertex attributes. Pass {} requires attributes {:?}.",
@@ -614,6 +640,7 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
 }
 
 // endregion
+*/
 
 // region - Common
 

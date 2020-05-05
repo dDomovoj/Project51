@@ -1,7 +1,7 @@
 //! Module for mesh support.
 use amethyst::assets::{Asset, Handle};
 // use amethyst::assets::{AssetPrefab, AssetStorage, Format, Handle, Loader, PrefabData, ProgressCounter};
-use amethyst::core::ecs::DenseVecStorage;
+use amethyst::core::ecs::{DenseVecStorage, Component};
 // use amethyst::core::ecs::{Entity, Read, ReadExpect, WriteStorage};
 // use amethyst::error::Error;
 use amethyst::renderer::{
@@ -22,89 +22,8 @@ use amethyst::renderer::rendy::{
 use gfx_hal::adapter::PhysicalDevice;
 use std::{borrow::Cow, mem::size_of};
 
-// /// 'Obj' mesh format `Format` implementation.
-// #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-// pub struct ObjFormat;
-
-amethyst::assets::register_format_type!(MeshData);
-
-// amethyst_assets::register_format!("OBJ", ObjFormat as MeshData);
-// impl Format<MeshData> for ObjFormat {
-//     fn name(&self) -> &'static str {
-//         "OBJ"
-//     }
-
-//     fn import_simple(&self, bytes: Vec<u8>) -> Result<MeshData, Error> {
-//         rendy::mesh::obj::load_from_obj(&bytes)
-//             .map(|mut builders| {
-//                 let mut iter = builders.drain(..);
-//                 let builder = iter.next().unwrap();
-//                 if iter.next().is_some() {
-//                     log::warn!("OBJ file contains more than one object, only loading the first");
-//                 }
-//                 builder.0.into()
-//             })
-//             .map_err(|e| e.compat().into())
-//     }
-// }
-
-// /// Internal mesh loading
-// ///
-// /// ### Type parameters:
-// ///
-// /// `V`: Vertex format to use for generated `Mesh`es, for example:
-// ///     * `Vec<PosTex>`
-// ///     * `Vec<PosNormTex>`
-// ///     * `(Vec<Position>, Vec<Normal>)`
-// #[derive(Debug, Deserialize, Serialize)]
-// #[serde(bound = "")]
-// pub enum MeshPrefab<V> {
-//     /// Load an asset Mesh from file
-//     Asset(AssetPrefab<Mesh>),
-//     /// Generate a Mesh from basic type
-//     Shape(ShapePrefab<V>),
-// }
-
-// impl<'a, V> PrefabData<'a> for MeshPrefab<V>
-// where
-//     V: FromShape + Into<MeshBuilder<'static>>,
-// {
-//     type SystemData = (
-//         ReadExpect<'a, Loader>,
-//         WriteStorage<'a, Handle<Mesh>>,
-//         Read<'a, AssetStorage<Mesh>>,
-//     );
-//     type Result = ();
-
-//     fn add_to_entity(
-//         &self,
-//         entity: Entity,
-//         system_data: &mut Self::SystemData,
-//         entities: &[Entity],
-//         children: &[Entity],
-//     ) -> Result<(), Error> {
-//         match self {
-//             MeshPrefab::Asset(m) => {
-//                 m.add_to_entity(entity, system_data, entities, children)?;
-//             }
-//             MeshPrefab::Shape(s) => {
-//                 s.add_to_entity(entity, system_data, entities, children)?;
-//             }
-//         }
-//         Ok(())
-//     }
-
-//     fn load_sub_assets(
-//         &mut self,
-//         progress: &mut ProgressCounter,
-//         system_data: &mut Self::SystemData,
-//     ) -> Result<bool, Error> {
-//         Ok(match self {
-//             MeshPrefab::Asset(m) => m.load_sub_assets(progress, system_data)?,
-//             MeshPrefab::Shape(s) => s.load_sub_assets(progress, system_data)?,
-//         })
-//     }
-// }
+// amethyst::assets::register_format_type!(Mesh);
+amethyst::assets::register_format_type!(MeshElementData);
 
 // region - Backend
 
@@ -122,9 +41,9 @@ amethyst::assets::register_format_type!(MeshData);
 // }
 
 pub trait ExtendedBackend: Backend {
-    fn unwrap_custom_mesh(mesh: &Mesh) -> Option<&BackendMesh<Self>>;
+    fn unwrap_mesh_element(mesh: &MeshElement) -> Option<&GenericMeshElement<Self>>;
 
-    fn wrap_custom_mesh(mesh: BackendMesh<Self>) -> Mesh;
+    fn wrap_mesh_element(mesh: GenericMeshElement<Self>) -> MeshElement;
 }
 
 // macro_rules! impl_backends {
@@ -231,24 +150,31 @@ pub trait ExtendedBackend: Backend {
 pub type DefaultExtendedBackend = rendy::metal::Backend;
 
 /// Mesh wrapper.
+/// #[derive(Debug)]
+pub struct Mesh {
+    // pub element: Handle<MeshElement>
+    pub elements: Vec<Handle<MeshElement>>
+}
+
+/// Mesh element wrapper.
 #[derive(Debug)]
-pub enum Mesh {
-    Metal(BackendMesh<rendy::metal::Backend>),
+pub enum MeshElement {
+    Metal(GenericMeshElement<rendy::metal::Backend>),
 }
 
 impl ExtendedBackend for rendy::metal::Backend {
     #[inline]
     #[allow(irrefutable_let_patterns)]
-    fn unwrap_custom_mesh(mesh: &Mesh) -> Option<&BackendMesh<Self>> {
-        if let Mesh::Metal(inner) = mesh {
+    fn unwrap_mesh_element(mesh: &MeshElement) -> Option<&GenericMeshElement<Self>> {
+        if let MeshElement::Metal(inner) = mesh {
             Some(inner)
         } else {
             None
         }
     }
     #[inline]
-    fn wrap_custom_mesh(mesh: BackendMesh<Self>) -> Mesh {
-        Mesh::Metal(mesh)
+    fn wrap_mesh_element(mesh: GenericMeshElement<Self>) -> MeshElement {
+        MeshElement::Metal(mesh)
     }
 }
 
@@ -256,9 +182,16 @@ impl ExtendedBackend for rendy::metal::Backend {
 
 // region - Assets
 
-impl Asset for Mesh {
-    const NAME: &'static str = "Mesh";
-    type Data = MeshData;
+impl Component for Mesh {
+    // const NAME: &'static str = "custom:Mesh";
+    // type Data = Self;
+    // type HandleStorage = DenseVecStorage<Handle<Self>>;
+    type Storage = DenseVecStorage<Self>;
+}
+
+impl Asset for MeshElement {
+    const NAME: &'static str = "custom:MeshElement";
+    type Data = MeshElementData;
     type HandleStorage = DenseVecStorage<Handle<Self>>;
 }
 
@@ -274,13 +207,13 @@ impl Asset for Mesh {
 
 /// Newtype for MeshBuilder prefab usage.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MeshData(#[serde(deserialize_with = "deserialize_data")] pub MeshBuilder<'static>);
+pub struct MeshElementData(#[serde(deserialize_with = "deserialize_data")] pub MeshBuilder<'static>);
 
 // /// Newtype for TextureBuilder prefab usage.
 // #[derive(Debug, Clone, Serialize, Deserialize)]
 // pub struct TextureData(pub rendy::texture::TextureBuilder<'static>);
 
-impl From<MeshBuilder<'static>> for MeshData {
+impl From<MeshBuilder<'static>> for MeshElementData {
     fn from(builder: MeshBuilder<'static>) -> Self {
         Self(builder)
     }
@@ -511,7 +444,7 @@ impl<'a> MeshBuilder<'a> {
     /// effectively discaring extra data from larger buffers.
     ///
     /// Note that contents of index buffer is not validated.
-    pub fn build<B>(&self, queue: QueueId, factory: &Factory<B>) -> Result<BackendMesh<B>, failure::Error>
+    pub fn build<B>(&self, queue: QueueId, factory: &Factory<B>) -> Result<GenericMeshElement<B>, failure::Error>
     where
         B: gfx_hal::Backend,
     {
@@ -612,7 +545,7 @@ impl<'a> MeshBuilder<'a> {
             )?;
         }
 
-        Ok(BackendMesh {
+        Ok(GenericMeshElement {
             vertex_layouts,
             index_buffer,
             vertex_buffer: buffer,
@@ -631,7 +564,7 @@ fn align_by(align: usize, value: usize) -> usize {
 /// Single mesh is a collection of buffer ranges that provides available attributes.
 /// Usually exactly one mesh is used per draw call.
 #[derive(Debug)]
-pub struct BackendMesh<B: gfx_hal::Backend> {
+pub struct GenericMeshElement<B: gfx_hal::Backend> {
     vertex_buffer: Escape<Buffer<B>>,
     vertex_layouts: Vec<VertexBufferLayout>,
     index_buffer: Option<IndexBuffer<B>>,
@@ -639,7 +572,7 @@ pub struct BackendMesh<B: gfx_hal::Backend> {
     len: u32,
 }
 
-impl<B> BackendMesh<B>
+impl<B> GenericMeshElement<B>
 where
     B: gfx_hal::Backend,
 {

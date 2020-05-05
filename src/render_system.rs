@@ -44,7 +44,7 @@ use thread_profiler::profile_scope;
 
 // use amethyst::renderer::system::GraphCreator;
 
-use crate::render_mesh::{ExtendedBackend, Mesh};
+use crate::render_mesh::{ExtendedBackend, Mesh, MeshElement};
 
 // /// Extended Amethyst rendering system
 // #[allow(missing_debug_implementations)]
@@ -73,7 +73,12 @@ use crate::render_mesh::{ExtendedBackend, Mesh};
 //     }
 // }
 
-type SetupData<'a> = (ReadStorage<'a, Handle<Mesh>>,);
+type SetupData<'a> = (
+    ReadStorage<'a, Mesh>,
+    ReadStorage<'a, Handle<MeshElement>>,
+    // Read<'a, AssetStorage<Mesh>>,
+    Read<'a, AssetStorage<MeshElement>>,
+);
 
 // impl<B, G> ExtendedRenderingSystem<B, G>
 // where
@@ -171,13 +176,14 @@ type SetupData<'a> = (ReadStorage<'a, Handle<Mesh>>,);
 //     }
 // }
 
-/// Asset processing system for `Mesh` asset type.
+/// Asset processing system for `Mesh` and `MeshElement` asset types.
 #[derive(Debug, derivative::Derivative)]
 #[derivative(Default(bound = ""))]
 pub struct MeshProcessorSystem<B: ExtendedBackend>(PhantomData<B>);
 impl<'a, B: ExtendedBackend> System<'a> for MeshProcessorSystem<B> {
     type SystemData = (
-        Write<'a, AssetStorage<Mesh>>,
+        // Write<'a, AssetStorage<Mesh>>,
+        Write<'a, AssetStorage<MeshElement>>,
         ReadExpect<'a, QueueId>,
         Read<'a, Time>,
         ReadExpect<'a, Arc<ThreadPool>>,
@@ -185,17 +191,30 @@ impl<'a, B: ExtendedBackend> System<'a> for MeshProcessorSystem<B> {
         ReadExpect<'a, Factory<B>>,
     );
 
-    fn run(&mut self, (mut mesh_storage, queue_id, time, pool, strategy, factory): Self::SystemData) {
+    fn run(
+        &mut self,
+        (mut mesh_elements_storage, queue_id, time, pool, strategy, factory): Self::SystemData,
+    ) {
         // #[cfg(feature = "profiler")]
         // profile_scope!("mesh_processor");
 
-        mesh_storage.process(
+        // mesh_storage.process(
+        //     |b| {
+        //         b.build(*queue_id, &factory)
+        //             .map(ProcessingState::Loaded)
+        //             .map_err(|e| e.compat().into())
+        //     },
+        //     time.frame_number(),
+        //     &**pool,
+        //     strategy.as_deref(),
+        // );
+
+        mesh_elements_storage.process(
             |b| {
                 // #[cfg(feature = "profiler")]
                 // profile_scope!("process_mesh");
-
                 b.0.build(*queue_id, &factory)
-                    .map(B::wrap_custom_mesh)
+                    .map(B::wrap_mesh_element)
                     .map(ProcessingState::Loaded)
                     .map_err(|e| e.compat().into())
             },
@@ -210,7 +229,10 @@ impl<'a, B: ExtendedBackend> System<'a> for MeshProcessorSystem<B> {
     }
 
     fn dispose(self, world: &mut World) {
-        if let Some(mut storage) = world.try_fetch_mut::<AssetStorage<Mesh>>() {
+        // if let Some(mut storage) = world.try_fetch_mut::<AssetStorage<Mesh>>() {
+        //     storage.unload_all();
+        // }
+        if let Some(mut storage) = world.try_fetch_mut::<AssetStorage<MeshElement>>() {
             storage.unload_all();
         }
     }

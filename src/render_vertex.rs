@@ -60,8 +60,6 @@ use glsl_layout::*;
 /// Material Instance-rate vertex arguments.
 /// ```glsl,ignore
 ///  mat4 model;
-///  vec4 tint;
-///  uint mtl_idx:
 /// ```
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, AsStd140)]
 #[repr(C, packed)]

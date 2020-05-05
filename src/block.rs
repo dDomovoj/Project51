@@ -37,7 +37,7 @@ use amethyst::{
 
 use amethyst::ecs::prelude::{Component, DenseVecStorage};
 
-use crate::render_mesh::{Mesh, MeshBuilder, MeshData};
+use crate::render_mesh::{Mesh, MeshElement, MeshBuilder, MeshElementData};
 
 // use crate::render_vertex::MaterialIdx;
 
@@ -67,7 +67,9 @@ impl Block {
 
     pub fn create_entity<'a>(&self, world: &'a mut World) -> EntityBuilder<'a> {
         // let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
-        let mesh = world.exec(|loader: AssetLoaderSystemData<Mesh>| loader.load_from_data(block_mesh(), ()));
+        let mesh_element = world.exec(|loader: AssetLoaderSystemData<MeshElement>| loader.load_from_data(block_mesh(), ()));
+        // let mesh = world.exec(|loader: AssetLoaderSystemData<Mesh>| loader.load_from_data(Mesh { elements: vec!(mesh_element) }, ()));
+        let mesh = Mesh { elements: vec!(mesh_element) };
 
         // let texture = world.exec(|loader: AssetLoaderSystemData<Texture>| {
         //     loader.load(
@@ -94,7 +96,7 @@ impl Block {
 }
 
 #[rustfmt::skip::attributes]
-fn block_mesh() -> MeshData {
+fn block_mesh() -> MeshElementData {
     let v: [[f32; 3]; 8] = [
         [-0.5, -0.5, 0.5],
         [-0.5, -0.5, -0.5],

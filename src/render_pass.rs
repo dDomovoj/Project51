@@ -210,10 +210,10 @@ impl<B: ExtendedBackend, D: IRenderPassDef> RenderPlugin<B> for BaseRender<D> {
     fn on_plan(&mut self, plan: &mut RenderPlan<B>, _factory: &mut Factory<B>, _world: &World) -> Result<(), Error> {
         plan.extend_target(self.target, move |ctx| {
             ctx.add(RenderOrder::Opaque, BaseDrawDesc::<B, D>::new().builder())?;
-            // ctx.add(
-            //     RenderOrder::Transparent,
-            //     BaseDrawTransparentDesc::<B, D>::new().builder(),
-            // )?;
+            ctx.add(
+                RenderOrder::Transparent,
+                BaseDrawTransparentDesc::<B, D>::new().builder(),
+            )?;
             Ok(())
         });
         Ok(())
@@ -317,14 +317,12 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
         // profile_scope_impl!("prepare opaque");
 
         let (
-            // meshes_assets,
             mesh_elements_assets,
             visibility,
             _transparent,
             _hiddens,
             _hiddens_prop,
             meshes,
-            mesh_elements,
             // materials,
             transforms,
             // tints,
@@ -337,7 +335,6 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
             ReadStorage<'_, HiddenPropagate>,
             // ReadStorage<'_, Handle<Mesh>>,
             ReadStorage<'_, Mesh>,
-            ReadStorage<'_, Handle<MeshElement>>,
             // ReadStorage<'_, Handle<Material>>,
             ReadStorage<'_, Transform>,
             // ReadStorage<'_, Tint>,
@@ -442,8 +439,6 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
 
 // endregion
 
-/*
-
 // region - BaseDrawTransparentDesc
 
 /// Draw transparent mesh with physically based lighting
@@ -530,10 +525,10 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
         // profile_scope_impl!("prepare transparent");
 
         // let (mesh_storage, visibility, meshes, materials, transforms, tints) =
-        let (mesh_elements_assets, visibility, mesh_elements, transforms) = <(
+        let (mesh_elements_assets, visibility, meshes, transforms) = <(
             Read<'_, AssetStorage<MeshElement>>,
             ReadExpect<'_, Visibility>,
-            ReadStorage<'_, Handle<MeshElement>>,
+            ReadStorage<'_, Mesh>,
             // ReadStorage<'_, Handle<Material>>,
             ReadStorage<'_, Transform>,
             // ReadStorage<'_, Tint>,
@@ -550,25 +545,15 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
         let mut changed = false;
 
         // let mut joined = (&materials, &meshes, &transforms, tints.maybe()).join();
-        let mut joined = (&mesh_elements, &transforms).join();
+        let mut joined = (&meshes, &transforms).join();
         visibility
             .visible_ordered
             .iter()
             .filter_map(|e| joined.get_unchecked(e.id()))
             // .map(|(mat, mesh, tform, tint)| {
-            // .map(|(mesh, tform)| {
-            //     // ((mat, mesh.id()), VertexArgs::from_object_data(tform, tint, 0))
-            //     (mesh.id(), VertexArgs::from_object_data(tform))
-            // })
-            // .flat_map(|(mesh, tform)| {
-            .map(|(element, tform)| {
+            .flat_map(|(mesh, tform)| {
                 let args = VertexArgs::from_object_data(tform);
-                let id = element.id();
-                (id, args)
-
-                // let elements = &mesh.elements;
-                // elements.iter().map(move |e| { (e.id(), args) })
-                // ((mat, mesh.id()), VertexArgs::from_object_data(tform, tint, 0))
+                mesh.elements.iter().map(move |e| { (e.id(), args) })
             })
             // .for_each_group(|(mat, mesh_id), data| {
             .for_each_group(|mesh_element_id, data| {
@@ -640,7 +625,7 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTr
 }
 
 // endregion
-*/
+
 
 // region - Common
 

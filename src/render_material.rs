@@ -1,27 +1,26 @@
-use crate::render_material::Material::Compound;
-use amethyst::renderer::mtl::Material as AmethystMaterial;
-use amethyst::renderer::pod;
-use amethyst::renderer::types::Texture as AmethystTexture;
 use amethyst::assets::{Asset, Handle};
-use amethyst::core::ecs::prelude::DenseVecStorage;
+use amethyst::core::ecs::{Component, DenseVecStorage};
+use amethyst::renderer::mtl::TextureOffset;
+use amethyst::renderer::mtl::{
+    Material as AmethystMaterial, MaterialDefaults as AmethystMaterialDefaults, StaticTextureSet,
+};
+// use amethyst::renderer::pod;
+// use amethyst::renderer::pod::Material as PodMaterial;
+// use amethyst::renderer::submodules::{MaterialId, MaterialSub};
+use amethyst::renderer::types::Texture as AmethystTexture;
+use glsl_layout::*;
 
-pub trait IMaterial {
-    fn count(&self) -> usize;
+// region - MaterialComposition
+
+pub struct MaterialComposition {
+    pub components: Vec<Handle<Material>>,
 }
 
-pub enum Material {
-    Simlpe(SimpleMaterial),
-    Compound(CompoundMaterial),
+impl Component for MaterialComposition {
+    type Storage = DenseVecStorage<Self>;
 }
 
-impl IMaterial for Material {
-    fn count(&self) -> usize {
-        match self {
-            Simple => 1,
-            Compound(material) => material.components.len(),
-        }
-    }
-}
+// endregion
 
 // /// A physically based Material with metallic workflow, fully utilized in PBR render pass.
 // #[derive(Debug, Clone, PartialEq)]
@@ -44,57 +43,138 @@ impl IMaterial for Material {
 //     pub uv_offset: TextureOffset,
 // }
 
-// impl Asset for Material {
-//     const NAME: &'static str = "renderer::Material";
-//     type Data = Self;
-//     type HandleStorage = DenseVecStorage<Handle<Self>>;
-// }
+#[derive(Debug, Clone, PartialEq)]
+pub struct Material {
+    pub diffuse: Handle<AmethystTexture>,
+    pub uv_offset: TextureOffset,
+}
 
+amethyst::assets::register_format_type!(Material);
 impl Asset for Material {
-    const NAME: &'static str = "Material";
+    const NAME: &'static str = "custom:Material";
     type Data = Self;
     type HandleStorage = DenseVecStorage<Handle<Self>>;
 }
 
-pub struct SimpleMaterial {
-    pub albedo: Handle<AmethystTexture>
+/// A resource providing default textures for `Material`.
+/// These will be be used by the renderer in case a texture
+/// handle points to a texture which is not loaded already.
+/// Additionally, you can use it to fill up the fields of
+/// `Material` you don't want to specify.
+#[derive(Debug, Clone)]
+pub struct MaterialDefaults(pub Material);
+
+// region - Shader Material
+
+/// Material Uniform
+/// ```glsl,ignore
+/// uniform Material {
+///    UvOffset uv_offset;
+///    float alpha_cutoff;
+/// };
+/// ```
+#[derive(Clone, Copy, Debug, AsStd140)]
+#[repr(C, align(16))]
+pub struct ShaderMaterial {
+    /// UV offset of material
+    pub uv_offset: amethyst::renderer::pod::TextureOffset,
+    // /// Material alpha cutoff
+    // pub alpha_cutoff: float,
 }
 
-pub struct CompoundMaterial {
-    components: Vec<SimpleMaterial>,
+impl ShaderMaterial {
+    /// Helper function from amethyst_rendy 'proper' type to POD type.
+    pub fn from_material(mat: &Material) -> Self {
+        ShaderMaterial {
+            uv_offset: amethyst::renderer::pod::TextureOffset::from_offset(&mat.uv_offset),
+            // alpha_cutoff: mat.alpha_cutoff,
+        }
+    }
 }
 
-// fn create_default_mat<B: Backend>(world: &mut World) -> Material {
-//     use crate::mtl::TextureOffset;
+// endregion
 
-//     use amethyst_assets::Loader;
+// region - ITextureSet
 
-//     let loader = world.fetch::<Loader>();
+/// Trait providing generic access to a collection of texture handles
+pub trait ITextureSet<'a>:
+    Clone + Copy + std::fmt::Debug + PartialEq + Eq + std::hash::Hash + Send + Sync + 'static
+{
+    /// Iterator type to access this texture sets handles
+    type Iter: Iterator<Item = &'a Handle<AmethystTexture>>;
 
-//     let albedo = load_from_srgba(Srgba::new(0.5, 0.5, 0.5, 1.0));
-//     let emission = load_from_srgba(Srgba::new(0.0, 0.0, 0.0, 0.0));
-//     let normal = load_from_linear_rgba(LinSrgba::new(0.5, 0.5, 1.0, 1.0));
-//     let metallic_roughness = load_from_linear_rgba(LinSrgba::new(0.0, 0.5, 0.0, 0.0));
-//     let ambient_occlusion = load_from_linear_rgba(LinSrgba::new(1.0, 1.0, 1.0, 1.0));
-//     let cavity = load_from_linear_rgba(LinSrgba::new(1.0, 1.0, 1.0, 1.0));
+    /// Returns an iterator to the textures associated with a given material.
+    fn textures(mat: &'a Material) -> Self::Iter;
 
-//     let tex_storage = world.fetch();
+    /// ALWAYS RETURNS 1
+    fn len() -> usize {
+        1
+    }
+}
 
-//     let albedo = loader.load_from_data(albedo.into(), (), &tex_storage);
-//     let emission = loader.load_from_data(emission.into(), (), &tex_storage);
-//     let normal = loader.load_from_data(normal.into(), (), &tex_storage);
-//     let metallic_roughness = loader.load_from_data(metallic_roughness.into(), (), &tex_storage);
-//     let ambient_occlusion = loader.load_from_data(ambient_occlusion.into(), (), &tex_storage);
-//     let cavity = loader.load_from_data(cavity.into(), (), &tex_storage);
+/// Type alias for a tuple collection of a complete PBR texture set.
+pub type FullTextureSet = (
+    TexDiffuse,
+    // TexEmission,
+    // TexNormal,
+    // TexMetallicRoughness,
+    // TexAmbientOcclusion,
+    // TexCavity,
+);
 
-//     Material {
-//         alpha_cutoff: 0.01,
-//         albedo,
-//         emission,
-//         normal,
-//         metallic_roughness,
-//         ambient_occlusion,
-//         cavity,
-//         uv_offset: TextureOffset::default(),
-//     }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TexDiffuse {}
+
+impl<'a> ITextureSet<'a> for TexDiffuse {
+    type Iter = std::iter::Once<&'a Handle<AmethystTexture>>;
+    #[inline(always)]
+    fn textures(mat: &'a Material) -> Self::Iter {
+        std::iter::once(&mat.diffuse)
+    }
+}
+
+// macro_rules! impl_texture {
+//     ($name:ident, $prop:ident) => {
+//         #[doc = "Macro Generated Texture Type"]
+//         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+//         pub struct $name;
+//         impl<'a> ITextureSet<'a> for $name {
+//             type Iter = std::iter::Once<&'a Handle<AmethystTexture>>;
+//             #[inline(always)]
+//             fn textures(mat: &'a Material) -> Self::Iter {
+//                 std::iter::once(&mat.$prop)
+//             }
+//         }
+//     };
 // }
+
+// impl_texture!(TexDiffuse, diffuse);
+
+macro_rules! recursive_iter {
+    (@value $first:expr, $($rest:expr),*) => { $first.chain(recursive_iter!(@value $($rest),*)) };
+    (@value $last:expr) => { $last };
+    (@type $first:ty, $($rest:ty),*) => { std::iter::Chain<$first, recursive_iter!(@type $($rest),*)> };
+    (@type $last:ty) => { $last };
+}
+
+macro_rules! impl_texture_set_tuple {
+    ($($from:ident),*) => {
+        impl<'a, $($from,)*> ITextureSet<'a> for ($($from),*,)
+        where
+            $($from: ITextureSet<'a>),*,
+        {
+            type Iter = recursive_iter!(@type $($from::Iter),*);
+            #[inline(always)]
+            fn textures(mat: &'a Material) -> Self::Iter {
+                recursive_iter!(@value $($from::textures(mat)),*)
+            }
+            fn len() -> usize {
+                $($from::len() + )* 0
+            }
+        }
+    }
+}
+
+impl_texture_set_tuple!(A);
+
+// endregion

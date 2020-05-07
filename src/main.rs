@@ -14,7 +14,11 @@ use amethyst::{
 mod block;
 mod bundles;
 mod game_start;
+
+#[macro_use]
+mod render_macros;
 mod render_material;
+mod render_material_sub;
 mod render_mesh;
 mod render_pass;
 mod render_plugins;
@@ -28,7 +32,7 @@ use crate::game_start::GameStart;
 use crate::render_mesh::DefaultExtendedBackend;
 use crate::render_pass::Render3D;
 use crate::render_plugins::RenderDebugLines;
-use crate::render_system::MeshProcessorSystem;
+use crate::render_system::{ExtendedRenderingSystem, MeshProcessorSystem};
 
 #[macro_use]
 extern crate guard;
@@ -66,9 +70,14 @@ fn main() -> Result<(), Error> {
                 .with_plugin(RenderDebugLines::default()),
         )?
         .with(
+            ExtendedRenderingSystem::<DefaultExtendedBackend>::default(),
+            "extended_rendering_system",
+            &[],
+        )
+        .with(
             MeshProcessorSystem::<DefaultExtendedBackend>::default(),
             "extended_mesh_processor",
-            &[],
+            &["extended_rendering_system"],
         );
 
     let mut game = Application::build(assets_dir, GameStart)?.build(game_data)?;

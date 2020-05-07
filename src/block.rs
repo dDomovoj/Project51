@@ -2,11 +2,11 @@
 // use crate::bundles::camera_control_bundle::{MouseControlTag, CreativeMovementControlTag};
 
 use amethyst::{
-    // assets::{AssetStorage, Loader, Handle},
+    assets::{AssetStorage, Loader, Handle},
     assets::AssetLoaderSystemData, //, Handle, Loader},
     // assets::RonFormat,
     // core::transform::TransformBundle,
-    ecs::{EntityBuilder, WorldExt},
+    ecs::{EntityBuilder, WorldExt, Write, Read},
     // controls::HideCursor,
     // core::{
     //     transform::Transform,
@@ -20,13 +20,14 @@ use amethyst::{
         // ImageFormat, SpriteRender, SpriteSheet, SpriteSheetFormat, Texture,
         // mtl::{Material as AmethystMaterial, MaterialDefaults},
         // palette::{Srgb, Srgba, LinSrgba},
-        rendy::mesh::{Normal, Position},//, /*Tangent, */ TexCoord},
+        rendy::mesh::{Normal, Position, TexCoord},//, /*Tangent, */ TexCoord},
         // transparent::Transparent,
         // shape::{Shape},
         // types::{Mesh, MeshData},//, Texture},
+        types::Texture,
         // Camera,
         // debug_drawing::{DebugLine, DebugLines, DebugLinesComponent, DebugLinesParams},
-        // ImageFormat,
+        ImageFormat,
         // Texture,
     },
     // window::ScreenDimensions,
@@ -38,6 +39,10 @@ use amethyst::{
 use amethyst::ecs::prelude::{Component, DenseVecStorage};
 
 use crate::render_mesh::{Mesh, MeshElement, MeshBuilder, MeshElementData};
+use crate::render_material::{Material as RenderMaterial, MaterialComposition, MaterialDefaults};
+
+use amethyst::ecs::shred::SystemData;
+// use amethyst::ecs::shred::DynamicSystemData;
 
 // use crate::render_vertex::MaterialIdx;
 
@@ -57,41 +62,43 @@ impl Component for Block {
 }
 
 impl Block {
-    // fn texture_name(&self) -> &str {
-    //     match &self.material {
-    //         Material::Grass => "grass_block_side",
-    //         Material::Crate => "crate",
-    //         Material::Dirt => "dirt",
-    //     }
-    // }
+    fn texture_name(&self) -> &str {
+        match &self.material {
+            Material::Grass => "grass_block_side",
+            Material::Crate => "crate",
+            Material::Dirt => "dirt",
+        }
+    }
 
     pub fn create_entity<'a>(&self, world: &'a mut World) -> EntityBuilder<'a> {
-        // let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
+        let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
         let mesh_element = world.exec(|loader: AssetLoaderSystemData<MeshElement>| loader.load_from_data(block_mesh(), ()));
         // let mesh = world.exec(|loader: AssetLoaderSystemData<Mesh>| loader.load_from_data(Mesh { elements: vec!(mesh_element) }, ()));
         let mesh = Mesh { elements: vec!(mesh_element) };
 
-        // let texture = world.exec(|loader: AssetLoaderSystemData<Texture>| {
-        //     loader.load(
-        //         format!("texture/{}.png", self.texture_name()),
-        //         ImageFormat::default(),
-        //         (),
-        //     )
-        // });
+        let texture = world.exec(|loader: AssetLoaderSystemData<Texture>| {
+            loader.load(
+                format!("texture/{}.png", self.texture_name()),
+                ImageFormat::default(),
+                (),
+            )
+        });
 
-        // let mat = world.exec(|loader: AssetLoaderSystemData<AmethystMaterial>| {
-        //     loader.load_from_data(
-        //         AmethystMaterial {
-        //             albedo: texture,
-        //             ..default_mat.clone()
-        //         },
-        //         (),
-        //     )
-        // });
+        let mat_alt = {
+            let mut materials_asset = <Write<'_, AssetStorage<RenderMaterial>>>::fetch(world);
+            let data = RenderMaterial {
+                diffuse: texture,
+                ..default_mat.clone()
+            };
+            materials_asset.insert(data)
+        };
 
-        world.create_entity().with(mesh)
-        // .with(Transparent::default())
-        // .with(mat)
+        let mat_composition = MaterialComposition { components: vec!(mat_alt) };
+
+        world.create_entity()
+            .with(mesh)
+            .with(mat_composition)
+            // .with(Transparent::default())
     }
 }
 
@@ -162,25 +169,25 @@ fn block_mesh() -> MeshElementData {
     //     5, 5, 5, 5, 5, 5, // R - v
     // ];
 
-    // let tex: [[f32; 2]; 36] = [
-    //     [0., 1.], [1., 0.], [0., 0.],  [0., 1.], [1., 1.], [1., 0.], // D - v
-    //     [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // U - v
-    //     [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // F - v
-    //     [1., 1.], [0., 0.], [1., 0.],  [1., 1.], [0., 1.], [0., 0.], // B - v
-    //     [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // L - v
-    //     [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // R - v
-    // ];
+    let tex: [[f32; 2]; 36] = [
+        [0., 1.], [1., 0.], [0., 0.],  [0., 1.], [1., 1.], [1., 0.], // D - v
+        [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // U - v
+        [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // F - v
+        [1., 1.], [0., 0.], [1., 0.],  [1., 1.], [0., 1.], [0., 0.], // B - v
+        [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // L - v
+        [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // R - v
+    ];
 
     let pos: Vec<Position> = pos.iter().map(|&coords| Position(coords)).collect();
     let norm: Vec<Normal> = norm.iter().map(|&coords| Normal(coords)).collect();
     // let tn: Vec<Tangent> = tn.iter().map(|&coords| { Tangent(coords) }).collect();
     // let m: Vec<MaterialIdx> = m.iter().map(|&idx| { MaterialIdx(idx) }).collect();
-    // let tex: Vec<TexCoord> = tex.iter().map(|&coords| { TexCoord(coords) }).collect();
+    let tex: Vec<TexCoord> = tex.iter().map(|&coords| { TexCoord(coords) }).collect();
     MeshBuilder::new()
         .with_vertices(pos)
         .with_vertices(norm)
         // .with_vertices(tn)
         // .with_vertices(m)
-        // .with_vertices(tex)
+        .with_vertices(tex)
         .into()
 }

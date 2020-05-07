@@ -2,14 +2,16 @@ use amethyst::renderer::rendy::util::types::vertex::{
     AsVertex,
     VertexFormat, // AsAttribute, Normal, Position, TexCoord,
 };
-// use gfx_hal::format::Format;
+
 use std::fmt::Debug;
 
 use glsl_layout::*;
 
 use amethyst::core::{math::Matrix4, Transform};
-// use amethyst::renderer::pod::{*, Tint};
+
 use amethyst::renderer::rendy::mesh::Model;
+// use gfx_hal::format::Format;
+// use amethyst::renderer::pod::{*, Tint};
 // use amethyst::renderer::resources::Tint as TintComponent;
 
 // //! GPU POD data types.
@@ -21,7 +23,6 @@ use amethyst::renderer::rendy::mesh::Model;
 // };
 // use amethyst::assets::{AssetStorage, Handle};
 use amethyst::core::math::convert;
-use glsl_layout::*;
 
 // /// Type for material idx of vertex.
 // #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)] //, AsStd140)]
@@ -68,8 +69,6 @@ pub struct VertexArgs {
     pub model: mat4,
     // /// Instance-rate `Tint`
     // pub tint: vec4,
-    // /// Instance-rate mtl idx as `u32`
-    // pub mtl_idx: u32,
 }
 
 impl AsVertex for VertexArgs {
@@ -85,13 +84,11 @@ impl VertexArgs {
     pub fn from_object_data(
         transform: &Transform,
         // tint: Option<&TintComponent>,
-        // mtl_idx: u32,
     ) -> Self {
         let model: [[f32; 4]; 4] = convert::<_, Matrix4<f32>>(*transform.global_matrix()).into();
         VertexArgs {
             model: model.into(),
             // tint: tint.map_or([1.0; 4].into(), |t| t.0.into_pod()),
-            // mtl_idx,
         }
     }
 }

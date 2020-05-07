@@ -202,7 +202,7 @@ fn spawn_axis(world: &mut World) {
 
 fn spawn_blocks(world: &mut World) {
     spawn_block(world, [0, 0, 0], Material::Grass);
-    // spawn_block(world, [1, 0, 0], Material::Crate);
+    spawn_block(world, [1, 0, 0], Material::Crate);
     // spawn_block(world, [1, -1, 0], Material::Crate);
     // spawn_block(world, [1, 0, 1], Material::Grass);
     // spawn_block(world, [1, -1, 1], Material::Crate);

@@ -22,9 +22,6 @@ use amethyst::renderer::rendy::{
 use gfx_hal::adapter::PhysicalDevice;
 use std::{borrow::Cow, mem::size_of};
 
-// amethyst::assets::register_format_type!(Mesh);
-amethyst::assets::register_format_type!(MeshElementData);
-
 // region - Backend
 
 // /// Extension of the rendy Backend trait.
@@ -189,6 +186,7 @@ impl Component for Mesh {
     type Storage = DenseVecStorage<Self>;
 }
 
+amethyst::assets::register_format_type!(MeshElementData);
 impl Asset for MeshElement {
     const NAME: &'static str = "custom:MeshElement";
     type Data = MeshElementData;

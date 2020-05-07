@@ -2,17 +2,17 @@
 use amethyst::assets::{AssetStorage, Handle, HotReloadStrategy, ProcessingState, ThreadPool};
 use amethyst::core::{
     // components::Transform,
-    ecs::{Read, ReadExpect, ReadStorage, System, SystemData, World, Write}, // WriteExpect, RunNow},
+    ecs::{Read, ReadExpect, ReadStorage, RunNow, System, SystemData, World, Write, WriteExpect},
     timing::Time,
     // Hidden, HiddenPropagate,
 };
-// use amethyst::renderer::palette::{LinSrgba, Srgba};
+use amethyst::renderer::palette::{LinSrgba, Srgba};
 use amethyst::renderer::rendy::{
     // self,
     command::QueueId, //, Families},
     factory::Factory, // ImageState},
-                      // graph::{Graph, GraphBuilder},
-                      // texture::palette::{load_from_linear_rgba, load_from_srgba},
+    // graph::{Graph, GraphBuilder},
+    texture::palette::{load_from_linear_rgba, load_from_srgba},
 };
 // use amethyst::renderer::{
 // camera::{ActiveCamera, Camera},
@@ -44,19 +44,22 @@ use thread_profiler::profile_scope;
 
 // use amethyst::renderer::system::GraphCreator;
 
+use crate::render_material::{Material, MaterialComposition, MaterialDefaults};
 use crate::render_mesh::{ExtendedBackend, Mesh, MeshElement};
 
-// /// Extended Amethyst rendering system
+/// Extended Amethyst rendering system
 // #[allow(missing_debug_implementations)]
-// pub struct ExtendedRenderingSystem<B, G>
-// where
-//     B: ExtendedBackend,
-//     G: GraphCreator<B>,
-// {
-//     graph: Option<Graph<B, World>>,
-//     families: Option<Families<B>>,
-//     graph_creator: G,
-// }
+#[derive(Debug, derivative::Derivative)]
+#[derivative(Default(bound = ""))]
+pub struct ExtendedRenderingSystem<B: ExtendedBackend>(PhantomData<B>); //, G>
+                                                                        // where
+                                                                        // B: ExtendedBackend,
+                                                                        // G: GraphCreator<B>,
+                                                                        // {
+                                                                        // graph: Option<Graph<B, World>>,
+                                                                        // families: Option<Families<B>>,
+                                                                        // graph_creator: G,
+                                                                        // }
 
 // impl<B, G> ExtendedRenderingSystem<B, G>
 // where
@@ -74,11 +77,26 @@ use crate::render_mesh::{ExtendedBackend, Mesh, MeshElement};
 // }
 
 type SetupData<'a> = (
+    ReadStorage<'a, MaterialComposition>,
     ReadStorage<'a, Mesh>,
+    ReadStorage<'a, Handle<Material>>,
     ReadStorage<'a, Handle<MeshElement>>,
-    // Read<'a, AssetStorage<Mesh>>,
+    Read<'a, AssetStorage<Material>>,
     Read<'a, AssetStorage<MeshElement>>,
 );
+
+impl<'a, B: ExtendedBackend> System<'a> for ExtendedRenderingSystem<B> {
+    type SystemData = ();
+
+    fn setup(&mut self, world: &mut World) {
+        SetupData::setup(world);
+
+        let mat = create_default_mat::<B>(world);
+        world.insert(MaterialDefaults(mat));
+    }
+
+    fn run(&mut self, _data: Self::SystemData) {}
+}
 
 // impl<B, G> ExtendedRenderingSystem<B, G>
 // where
@@ -191,10 +209,7 @@ impl<'a, B: ExtendedBackend> System<'a> for MeshProcessorSystem<B> {
         ReadExpect<'a, Factory<B>>,
     );
 
-    fn run(
-        &mut self,
-        (mut mesh_elements_storage, queue_id, time, pool, strategy, factory): Self::SystemData,
-    ) {
+    fn run(&mut self, (mut mesh_elements_storage, queue_id, time, pool, strategy, factory): Self::SystemData) {
         // #[cfg(feature = "profiler")]
         // profile_scope!("mesh_processor");
 
@@ -224,9 +239,9 @@ impl<'a, B: ExtendedBackend> System<'a> for MeshProcessorSystem<B> {
         );
     }
 
-    fn setup(&mut self, world: &mut World) {
-        SetupData::setup(world);
-    }
+    // fn setup(&mut self, world: &mut World) {
+    //     SetupData::setup(world);
+    // }
 
     fn dispose(self, world: &mut World) {
         // if let Some(mut storage) = world.try_fetch_mut::<AssetStorage<Mesh>>() {
@@ -285,36 +300,36 @@ impl<'a, B: ExtendedBackend> System<'a> for MeshProcessorSystem<B> {
 //     }
 // }
 
-// fn create_default_mat<B: ExtendedBackend>(world: &mut World) -> Material {
-//     use amethyst::renderer::mtl::TextureOffset;
-//     use amethyst::assets::Loader;
+fn create_default_mat<B: ExtendedBackend>(world: &mut World) -> Material {
+    use amethyst::assets::Loader;
+    use amethyst::renderer::mtl::TextureOffset;
 
-//     let loader = world.fetch::<Loader>();
+    let loader = world.fetch::<Loader>();
 
-//     let albedo = load_from_srgba(Srgba::new(0.5, 0.5, 0.5, 1.0));
-//     let emission = load_from_srgba(Srgba::new(0.0, 0.0, 0.0, 0.0));
-//     let normal = load_from_linear_rgba(LinSrgba::new(0.5, 0.5, 1.0, 1.0));
-//     let metallic_roughness = load_from_linear_rgba(LinSrgba::new(0.0, 0.5, 0.0, 0.0));
-//     let ambient_occlusion = load_from_linear_rgba(LinSrgba::new(1.0, 1.0, 1.0, 1.0));
-//     let cavity = load_from_linear_rgba(LinSrgba::new(1.0, 1.0, 1.0, 1.0));
+    let diffuse = load_from_srgba(Srgba::new(0.5, 0.5, 0.5, 1.0));
+    // let emission = load_from_srgba(Srgba::new(0.0, 0.0, 0.0, 0.0));
+    // let normal = load_from_linear_rgba(LinSrgba::new(0.5, 0.5, 1.0, 1.0));
+    // let metallic_roughness = load_from_linear_rgba(LinSrgba::new(0.0, 0.5, 0.0, 0.0));
+    // let ambient_occlusion = load_from_linear_rgba(LinSrgba::new(1.0, 1.0, 1.0, 1.0));
+    // let cavity = load_from_linear_rgba(LinSrgba::new(1.0, 1.0, 1.0, 1.0));
 
-//     let tex_storage = world.fetch();
+    let tex_storage = world.fetch();
 
-//     let albedo = loader.load_from_data(albedo.into(), (), &tex_storage);
-//     let emission = loader.load_from_data(emission.into(), (), &tex_storage);
-//     let normal = loader.load_from_data(normal.into(), (), &tex_storage);
-//     let metallic_roughness = loader.load_from_data(metallic_roughness.into(), (), &tex_storage);
-//     let ambient_occlusion = loader.load_from_data(ambient_occlusion.into(), (), &tex_storage);
-//     let cavity = loader.load_from_data(cavity.into(), (), &tex_storage);
+    let diffuse = loader.load_from_data(diffuse.into(), (), &tex_storage);
+    // let emission = loader.load_from_data(emission.into(), (), &tex_storage);
+    // let normal = loader.load_from_data(normal.into(), (), &tex_storage);
+    // let metallic_roughness = loader.load_from_data(metallic_roughness.into(), (), &tex_storage);
+    // let ambient_occlusion = loader.load_from_data(ambient_occlusion.into(), (), &tex_storage);
+    // let cavity = loader.load_from_data(cavity.into(), (), &tex_storage);
 
-//     Material {
-//         alpha_cutoff: 0.01,
-//         albedo,
-//         emission,
-//         normal,
-//         metallic_roughness,
-//         ambient_occlusion,
-//         cavity,
-//         uv_offset: TextureOffset::default(),
-//     }
-// }
+    Material {
+        // alpha_cutoff: 0.01,
+        diffuse,
+        // emission,
+        // normal,
+        // metallic_roughness,
+        // ambient_occlusion,
+        // cavity,
+        uv_offset: TextureOffset::default(),
+    }
+}

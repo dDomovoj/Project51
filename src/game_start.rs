@@ -4,7 +4,7 @@ use crate::bundles::camera_control_bundle::{CreativeMovementControlTag, MouseCon
 
 use amethyst::{
     // assets::{AssetStorage, Loader, Handle},
-    // assets::{AssetLoaderSystemData, Handle, Loader},
+    assets::{Loader},
     controls::HideCursor,
     core::{
         math::{Point3, Vector3},
@@ -12,20 +12,20 @@ use amethyst::{
     },
     // assets::RonFormat,
     // core::transform::TransformBundle,
-    ecs::{WorldExt},//prelude::Write, EntityBuilder, },
+    ecs::WorldExt, //prelude::Write, EntityBuilder, },
     // error::Error,
     input::{is_key_down, is_mouse_button_down},
     prelude::*,
     renderer::{
-        debug_drawing::{DebugLinesComponent},// DebugLine, DebugLines, DebugLinesParams},
-        light::{Light, PointLight},//, SunLight},
+        debug_drawing::DebugLinesComponent, // DebugLine, DebugLines, DebugLinesParams},
+        light::{Light, PointLight},         //, SunLight},
         // ImageFormat, SpriteRender, SpriteSheet, SpriteSheetFormat, Texture,
         // mtl::{Material as AmethystMaterial, MaterialDefaults},
         palette::{Srgb, Srgba},
         // rendy::{
-            // mesh::{MeshBuilder, Normal, Position, Tangent, TexCoord},
-            // texture::palette::{load_from_linear_rgba, load_from_srgb, load_from_srgba},
-            // util::types::vertex::{Color, PosColor, PosTex},
+        // mesh::{MeshBuilder, Normal, Position, Tangent, TexCoord},
+        // texture::palette::{load_from_linear_rgba, load_from_srgb, load_from_srgba},
+        // util::types::vertex::{Color, PosColor, PosTex},
         // },
         // resources::AmbientColor,
         // shape::Shape,
@@ -34,12 +34,16 @@ use amethyst::{
         // ImageFormat,
         // Texture,
     },
+    ui::{Anchor, TtfFormat, UiText, UiTransform},
     utils::auto_fov::AutoFov,
     window::ScreenDimensions,
     winit::{MouseButton, VirtualKeyCode},
 };
 
 use std::f32::consts::{FRAC_PI_6, FRAC_PI_8};
+
+extern crate rand;
+use rand::distributions::{Distribution, Uniform};
 
 pub struct GameStart;
 
@@ -67,14 +71,13 @@ impl SimpleState for GameStart {
         spawn_blocks(world);
         spawn_lights(world);
         initialize_camera(world);
+        initialize_ui(world);
 
         // audio::initialise_audio(world, &self.audio_dir);
         // ui::initialize_scoreboard(world, &self.fonts_dir);
     }
 
-    fn handle_event(
-        &mut self, data: StateData<'_, GameData<'_, '_>>, event: StateEvent,
-    ) -> SimpleTrans {
+    fn handle_event(&mut self, data: StateData<'_, GameData<'_, '_>>, event: StateEvent) -> SimpleTrans {
         let StateData { world, .. } = data;
         if let StateEvent::Window(event) = &event {
             if is_key_down(&event, VirtualKeyCode::Escape) {
@@ -111,6 +114,28 @@ fn initialize_camera(world: &mut World) {
         .with(CreativeMovementControlTag)
         .with(auto_fov)
         .with(transform)
+        .build();
+}
+
+// endregion
+
+// region - UI
+
+fn initialize_ui(world: &mut World) {
+    let font = world.read_resource::<Loader>().load(
+        "font/square.ttf",
+        TtfFormat,
+        (),
+        &world.read_resource(),
+    );
+    let transform = UiTransform::new(
+        "FPS".to_string(), Anchor::TopLeft, Anchor::TopLeft,
+        0., 0., 1., 200., 50.,
+    );
+    world
+        .create_entity()
+        .with(transform)
+        .with(UiText::new(font.clone(), "".to_string(), [1., 1., 1., 1.], 50.))
         .build();
 }
 
@@ -154,23 +179,11 @@ fn spawn_lights(world: &mut World) {
     let mut light3_transform = Transform::default();
     light3_transform.set_translation_xyz(-1.0, -2.0, 1.0);
 
-    world
-        .create_entity()
-        .with(light1)
-        .with(light1_transform)
-        .build();
+    world.create_entity().with(light1).with(light1_transform).build();
 
-    world
-        .create_entity()
-        .with(light2)
-        .with(light2_transform)
-        .build();
+    world.create_entity().with(light2).with(light2_transform).build();
 
-    world
-        .create_entity()
-        .with(light3)
-        .with(light3_transform)
-        .build();
+    world.create_entity().with(light3).with(light3_transform).build();
 }
 
 // endregion
@@ -201,13 +214,16 @@ fn spawn_axis(world: &mut World) {
 // region - Blocks
 
 fn spawn_blocks(world: &mut World) {
-    spawn_block(world, [0, 0, 0], Material::Grass);
-    spawn_block(world, [1, 0, 0], Material::Crate);
-    // spawn_block(world, [1, -1, 0], Material::Crate);
-    // spawn_block(world, [1, 0, 1], Material::Grass);
-    // spawn_block(world, [1, -1, 1], Material::Crate);
-    // spawn_block(world, [0, -1, 0], Material::Dirt);
-    // spawn_block(world, [0, -1, 1], Material::Dirt);
+    let mut rng = rand::thread_rng();
+    let axis = Uniform::from(-4..4);
+    // let axis = Uniform::from(-8..8);
+    // let axis = Uniform::from(-16..16);
+    for _ in 0..16 {
+        // for _ in 0..128 {
+        // for _ in 0..4096 {
+        let (x, y, z) = (axis.sample(&mut rng), axis.sample(&mut rng), axis.sample(&mut rng));
+        spawn_block(world, [x, y, z], Material::Grass);
+    }
 }
 
 fn spawn_block(world: &mut World, position: [i128; 3], material: Material) {

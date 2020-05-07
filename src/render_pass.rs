@@ -319,7 +319,6 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
         // profile_scope_impl!("prepare opaque");
 
         let (
-            // materials_assets,
             mesh_elements_assets,
             visibility,
             _transparent,
@@ -330,13 +329,11 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
             transforms,
             // tints,
         ) = <(
-            // Read<'_, AssetStorage<Material>>,
             Read<'_, AssetStorage<MeshElement>>,
             ReadExpect<'_, Visibility>,
             ReadStorage<'_, Transparent>,
             ReadStorage<'_, Hidden>,
             ReadStorage<'_, HiddenPropagate>,
-            // ReadStorage<'_, Handle<Mesh>>,
             ReadStorage<'_, Mesh>,
             ReadStorage<'_, MaterialComposition>,
             ReadStorage<'_, Transform>,
@@ -361,27 +358,21 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
                 // .map(|((mat, mesh, tform, tint), _)| {
                 .flat_map(|((mat, mesh, tform), _)| {
                     let args = VertexArgs::from_object_data(tform);
-
+                    // ((mat, mesh.id()), VertexArgs::from_object_data(tform, tint, 0))
                     mat.components.iter().zip(mesh.elements.iter())
                         .map(move |(m, e)| ((m, e.id()), args))
-
-                    // .iter().map(move |e| ((mat, e.id()), args))
-                    // ((mat, mesh.id()), VertexArgs::from_object_data(tform, tint, 0))
                 })
                 // .for_each_group(|(mat, mesh_id), data| {
                 .for_each_group(|(mat, mesh_element_id), data| {
                     if mesh_elements_assets.contains_id(mesh_element_id) {
-                        // let mat = materials_assets.get_by_id_unchecked(mat_id);
                         if let Some((mat, _)) = materials_ref.insert(factory, resources, mat) {
                             statics_ref.insert(mat, mesh_element_id, data.drain(..));
                         }
-                        // statics_ref.insert(0, mesh_element_id, data.drain(..));
                     }
                 });
         }
         {
             // profile_scope_impl!("write");
-
             self.static_batches.prune();
 
             self.models.write(
@@ -399,8 +390,6 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
         resources: &World,
     ) {
         // profile_scope_impl!("draw opaque");
-
-        // let mesh_storage = <Read<'_, AssetStorage<Mesh>>>::fetch(resources);
         let mesh_elements_assets = <Read<'_, AssetStorage<MeshElement>>>::fetch(resources);
         let models_loc = self.vertex_format_base.len() as u32;
 

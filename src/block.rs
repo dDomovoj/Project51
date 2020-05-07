@@ -160,15 +160,6 @@ fn block_mesh() -> MeshElementData {
     //     t[5], t[5], t[5], t[5], t[5], t[5], // R - v
     // ];
 
-    // let m: [u32; 36] = [
-    //     0, 0, 0, 0, 0, 0, // D - v
-    //     1, 1, 1, 1, 1, 1, // U - v
-    //     2, 2, 2, 2, 2, 2, // F - v
-    //     3, 3, 3, 3, 3, 3, // B - v
-    //     4, 4, 4, 4, 4, 4, // L - v
-    //     5, 5, 5, 5, 5, 5, // R - v
-    // ];
-
     let tex: [[f32; 2]; 36] = [
         [0., 1.], [1., 0.], [0., 0.],  [0., 1.], [1., 1.], [1., 0.], // D - v
         [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // U - v
@@ -181,13 +172,11 @@ fn block_mesh() -> MeshElementData {
     let pos: Vec<Position> = pos.iter().map(|&coords| Position(coords)).collect();
     let norm: Vec<Normal> = norm.iter().map(|&coords| Normal(coords)).collect();
     // let tn: Vec<Tangent> = tn.iter().map(|&coords| { Tangent(coords) }).collect();
-    // let m: Vec<MaterialIdx> = m.iter().map(|&idx| { MaterialIdx(idx) }).collect();
     let tex: Vec<TexCoord> = tex.iter().map(|&coords| { TexCoord(coords) }).collect();
     MeshBuilder::new()
         .with_vertices(pos)
         .with_vertices(norm)
         // .with_vertices(tn)
-        // .with_vertices(m)
         .with_vertices(tex)
         .into()
 }

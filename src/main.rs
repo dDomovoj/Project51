@@ -10,6 +10,8 @@ use amethyst::{
     utils::application_root_dir,
     Error,
 };
+use amethyst::utils::fps_counter::{FpsCounter, FpsCounterBundle};
+use amethyst::ui::{RenderUi, UiBundle};
 
 mod block;
 mod bundles;
@@ -33,6 +35,8 @@ use crate::render_mesh::DefaultExtendedBackend;
 use crate::render_pass::Render3D;
 use crate::render_plugins::RenderDebugLines;
 use crate::render_system::{ExtendedRenderingSystem, MeshProcessorSystem};
+
+use crate::systems::ui::UISystem;
 
 #[macro_use]
 extern crate guard;
@@ -67,11 +71,19 @@ fn main() -> Result<(), Error> {
                     Srgb::new(0.18, 0.11, 0.85),
                 ))
                 .with_plugin(Render3D::default())
-                .with_plugin(RenderDebugLines::default()),
+                .with_plugin(RenderDebugLines::default())
+                .with_plugin(RenderUi::default()),
         )?
+        .with_bundle(UiBundle::<StringBindings>::new())?
+        .with_bundle(FpsCounterBundle::default())?
         .with(
             ExtendedRenderingSystem::<DefaultExtendedBackend>::default(),
             "extended_rendering_system",
+            &[],
+        )
+        .with(
+            UISystem::default(),
+            "ui_system",
             &[],
         )
         .with(
@@ -79,6 +91,11 @@ fn main() -> Result<(), Error> {
             "extended_mesh_processor",
             &["extended_rendering_system"],
         );
+        // .with_system_desc(
+        //     UiGlyphsSystemDesc::<DefaultExtendedBackend>::default(),
+        //     "ui_glyph_system",
+        //     &[],
+        // );
 
     let mut game = Application::build(assets_dir, GameStart)?.build(game_data)?;
     game.run();

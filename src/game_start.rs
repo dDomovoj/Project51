@@ -12,7 +12,7 @@ use amethyst::{
     },
     // assets::RonFormat,
     // core::transform::TransformBundle,
-    ecs::WorldExt, //prelude::Write, EntityBuilder, },
+    ecs::{WorldExt, Write}, //prelude::Write, EntityBuilder, },
     // error::Error,
     input::{is_key_down, is_mouse_button_down},
     prelude::*,
@@ -27,7 +27,7 @@ use amethyst::{
         // texture::palette::{load_from_linear_rgba, load_from_srgb, load_from_srgba},
         // util::types::vertex::{Color, PosColor, PosTex},
         // },
-        // resources::AmbientColor,
+        resources::AmbientColor,
         // shape::Shape,
         // types::{Mesh, MeshData}, //, Texture},
         Camera,
@@ -145,9 +145,9 @@ fn initialize_ui(world: &mut World) {
 
 // 1 -1 2
 fn spawn_lights(world: &mut World) {
-    // world.exec(|mut color: Write<'_, AmbientColor>| {
-    //     color.0 = Srgba::new(0.3, 0.3, 0.3, 1.0);
-    // });
+    world.exec(|mut color: Write<'_, AmbientColor>| {
+        color.0 = Srgba::new(0.15, 0.15, 0.15, 1.0);
+    });
 
     let light1: Light = PointLight {
         intensity: 14.0,
@@ -215,13 +215,12 @@ fn spawn_axis(world: &mut World) {
 
 fn spawn_blocks(world: &mut World) {
     let mut rng = rand::thread_rng();
-    let axis = Uniform::from(-4..4);
-    // let axis = Uniform::from(-8..8);
-    // let axis = Uniform::from(-16..16);
-    for _ in 0..16 {
-        // for _ in 0..128 {
-        // for _ in 0..4096 {
-        let (x, y, z) = (axis.sample(&mut rng), axis.sample(&mut rng), axis.sample(&mut rng));
+    let range = 4_i128; // 4, 16, 128
+    let chunks = 1_i32; // 1, 8, 256
+    let axis = Uniform::from(-range..range);
+    for _ in 0..(chunks * 16) {
+        // let (x, y, z) = (axis.sample(&mut rng), axis.sample(&mut rng), axis.sample(&mut rng));
+        let (x, y, z) = (axis.sample(&mut rng), 0, axis.sample(&mut rng));
         spawn_block(world, [x, y, z], Material::Grass);
     }
 }

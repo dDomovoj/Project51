@@ -31,10 +31,13 @@ mod systems;
 
 use crate::bundles::camera_control_bundle::CameraControlBundle;
 use crate::game_start::GameStart;
-use crate::render_mesh::DefaultExtendedBackend;
-use crate::render_pass::Render3D;
 use crate::render_plugins::RenderDebugLines;
 use crate::render_system::{ExtendedRenderingSystem, MeshProcessorSystem};
+
+// use amethyst::renderer::plugins::RenderShaded3D as Render3D;
+// use amethyst::renderer::types::DefaultBackend as DefaultExtendedBackend;
+use crate::render_pass::Render3D;
+use crate::render_mesh::DefaultExtendedBackend;
 
 use crate::systems::ui::UISystem;
 

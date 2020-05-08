@@ -10,7 +10,7 @@
         ),
         "move_up": Emulated(
             pos: Key(Space),
-            neg: Key(Q),
+            neg: Key(LShift),
         )
     },
     actions: {

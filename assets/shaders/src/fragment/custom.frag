@@ -211,8 +211,6 @@ layout(location = 0) out vec4 out_color;
 
 
 void main() {
-    // out_color = vec4(1.0);
-
     vec2 final_tex_coords   = tex_coords(vertex.tex_coord, uv_offset);
     vec4 diffuse_alpha       = texture(diffuse, final_tex_coords);
     float alpha             = diffuse_alpha.a;
@@ -241,5 +239,6 @@ void main() {
         lighting += diffuse * dlight[i].intensity;
     }
     lighting += ambient_color;
+    lighting = min(lighting, 1.0);
     out_color = vec4(lighting * diffuse/* + emission*/, alpha) * vertex.color;
 }

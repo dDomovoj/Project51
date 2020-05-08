@@ -4,8 +4,6 @@
 use amethyst::{
     assets::{AssetStorage, Loader, Handle},
     assets::AssetLoaderSystemData, //, Handle, Loader},
-    // assets::RonFormat,
-    // core::transform::TransformBundle,
     ecs::{EntityBuilder, WorldExt, Write, Read},
     // controls::HideCursor,
     // core::{
@@ -16,19 +14,13 @@ use amethyst::{
     // input::{is_key_down, is_mouse_button_down},
     prelude::*,
     renderer::{
-        // light::{Light, PointLight, SunLight},
-        // ImageFormat, SpriteRender, SpriteSheet, SpriteSheetFormat, Texture,
         // mtl::{Material as AmethystMaterial, MaterialDefaults},
         // palette::{Srgb, Srgba, LinSrgba},
-        rendy::mesh::{Normal, Position, TexCoord},//, /*Tangent, */ TexCoord},
+        rendy::mesh::{Normal, Position, TexCoord},//, MeshBuilder},
         // transparent::Transparent,
-        // shape::{Shape},
         // types::{Mesh, MeshData},//, Texture},
         types::Texture,
-        // Camera,
-        // debug_drawing::{DebugLine, DebugLines, DebugLinesComponent, DebugLinesParams},
         ImageFormat,
-        // Texture,
     },
     // window::ScreenDimensions,
     // winit::{MouseButton, VirtualKeyCode},
@@ -42,9 +34,6 @@ use crate::render_mesh::{Mesh, MeshElement, MeshBuilder, MeshElementData};
 use crate::render_material::{Material as RenderMaterial, MaterialComposition, MaterialDefaults};
 
 use amethyst::ecs::shred::SystemData;
-// use amethyst::ecs::shred::DynamicSystemData;
-
-// use crate::render_vertex::MaterialIdx;
 
 pub enum Material {
     Dirt,
@@ -71,9 +60,8 @@ impl Block {
     }
 
     pub fn create_entity<'a>(&self, world: &'a mut World) -> EntityBuilder<'a> {
-        let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
+        // let mesh = world.exec(|loader: AssetLoaderSystemData<Mesh>| loader.load_from_data(block_mesh(), ()));
         let mesh_element = world.exec(|loader: AssetLoaderSystemData<MeshElement>| loader.load_from_data(block_mesh(), ()));
-        // let mesh = world.exec(|loader: AssetLoaderSystemData<Mesh>| loader.load_from_data(Mesh { elements: vec!(mesh_element) }, ()));
         let mesh = Mesh { elements: vec!(mesh_element) };
 
         let texture = world.exec(|loader: AssetLoaderSystemData<Texture>| {
@@ -84,7 +72,14 @@ impl Block {
             )
         });
 
-        let mat_alt = {
+        let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
+        // let mat = world.exec(|loader: AssetLoaderSystemData<AmethystMaterial>| 
+        //     loader.load_from_data(AmethystMaterial {
+        //         albedo: texture,
+        //         ..default_mat.clone()
+        //     }, ())
+        // );
+        let mat_element = {
             let mut materials_asset = <Write<'_, AssetStorage<RenderMaterial>>>::fetch(world);
             let data = RenderMaterial {
                 diffuse: texture,
@@ -92,17 +87,17 @@ impl Block {
             };
             materials_asset.insert(data)
         };
-
-        let mat_composition = MaterialComposition { components: vec!(mat_alt) };
+        let mat = MaterialComposition { components: vec!(mat_element) };
 
         world.create_entity()
             .with(mesh)
-            .with(mat_composition)
+            .with(mat)
             // .with(Transparent::default())
     }
 }
 
 #[rustfmt::skip::attributes]
+// fn block_mesh() -> MeshData {
 fn block_mesh() -> MeshElementData {
     let v: [[f32; 3]; 8] = [
         [-0.5, -0.5, 0.5],

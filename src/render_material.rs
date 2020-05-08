@@ -1,9 +1,9 @@
 use amethyst::assets::{Asset, Handle};
 use amethyst::core::ecs::{Component, DenseVecStorage};
 use amethyst::renderer::mtl::TextureOffset;
-use amethyst::renderer::mtl::{
-    Material as AmethystMaterial, MaterialDefaults as AmethystMaterialDefaults, StaticTextureSet,
-};
+// use amethyst::renderer::mtl::{
+//     Material as AmethystMaterial, MaterialDefaults as AmethystMaterialDefaults, StaticTextureSet,
+// };
 // use amethyst::renderer::pod;
 // use amethyst::renderer::pod::Material as PodMaterial;
 // use amethyst::renderer::submodules::{MaterialId, MaterialSub};

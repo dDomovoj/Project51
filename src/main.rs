@@ -13,7 +13,7 @@ use amethyst::{
 use amethyst::utils::fps_counter::{FpsCounter, FpsCounterBundle};
 use amethyst::ui::{RenderUi, UiBundle};
 
-mod block;
+mod voxel;
 mod bundles;
 mod game_start;
 
@@ -27,6 +27,7 @@ mod render_plugins;
 mod render_shader;
 mod render_system;
 mod render_vertex;
+mod render_cache;
 mod systems;
 
 use crate::bundles::camera_control_bundle::CameraControlBundle;
@@ -45,7 +46,10 @@ use crate::systems::ui::UISystem;
 extern crate guard;
 
 fn main() -> Result<(), Error> {
-    amethyst::start_logger(Default::default());
+    amethyst::start_logger(amethyst::LoggerConfig {
+        // level_filter: amethyst::LogLevelFilter::Debug,
+        ..Default::default()
+    });
 
     let app_root = application_root_dir()?;
 

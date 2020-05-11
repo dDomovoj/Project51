@@ -1,5 +1,5 @@
 // use std::path::PathBuf;
-use crate::block::{Block, Material};
+use crate::voxel::{Voxel, Material};
 use crate::bundles::camera_control_bundle::{CreativeMovementControlTag, MouseControlTag};
 
 use amethyst::{
@@ -68,7 +68,8 @@ impl SimpleState for GameStart {
         // world.register::<Mesh>();
 
         spawn_axis(world);
-        spawn_blocks(world);
+        // spawn_blocks(world);
+        spawn_block_sphere(world, 8);
         spawn_lights(world);
         initialize_camera(world);
         initialize_ui(world);
@@ -97,7 +98,8 @@ impl SimpleState for GameStart {
 fn initialize_camera(world: &mut World) {
     let mut transform = Transform::default();
     transform
-        .set_translation_xyz(-1.5, 1.5, 3.0)
+        // .set_translation_xyz(-1.5, 1.5, 3.0)
+        .set_translation_xyz(-7.5, 7.5, 15.)
         .append_rotation_y_axis(-FRAC_PI_6)
         .append_rotation_x_axis(-FRAC_PI_8);
 
@@ -157,7 +159,8 @@ fn spawn_lights(world: &mut World) {
     .into();
 
     let mut light1_transform = Transform::default();
-    light1_transform.set_translation_xyz(-4.0, 3.0, -6.0);
+    // light1_transform.set_translation_xyz(-4.0, 3.0, -6.0);
+    light1_transform.set_translation_xyz(-12.0, 9.0, -18.0);
 
     let light2: Light = PointLight {
         intensity: 15.0,
@@ -167,7 +170,8 @@ fn spawn_lights(world: &mut World) {
     .into();
 
     let mut light2_transform = Transform::default();
-    light2_transform.set_translation_xyz(2.0, 1.0, 1.0);
+    // light2_transform.set_translation_xyz(2.0, 1.0, 1.0);
+    light2_transform.set_translation_xyz(6.0, 3.0, 3.0);
 
     let light3: Light = PointLight {
         intensity: 13.0,
@@ -177,7 +181,8 @@ fn spawn_lights(world: &mut World) {
     .into();
 
     let mut light3_transform = Transform::default();
-    light3_transform.set_translation_xyz(-1.0, -2.0, 1.0);
+    // light3_transform.set_translation_xyz(-1.0, -2.0, 1.0);
+    light3_transform.set_translation_xyz(-3.0, -6.0, 3.0);
 
     world.create_entity().with(light1).with(light1_transform).build();
 
@@ -193,18 +198,22 @@ fn spawn_lights(world: &mut World) {
 fn spawn_axis(world: &mut World) {
     let mut debug_lines = DebugLinesComponent::new();
     let origin = Point3::from(Vector3::new(0.0, 0.0, 0.0));
+    let axis_length = 16.0_f32;
 
     let x_axis_direction = Vector3::new(1.0, 0.0, 0.0);
     let x_axis_color = Srgba::new(1.0, 0.0, 0.0, 1.0);
-    debug_lines.add_direction(origin, x_axis_direction, x_axis_color);
+    debug_lines.add_line(origin, origin + x_axis_direction * axis_length, x_axis_color);
+    // debug_lines.add_direction(origin, x_axis_direction, x_axis_color);
 
     let y_axis_direction = Vector3::new(0.0, 1.0, 0.0);
     let y_axis_color = Srgba::new(0.0, 1.0, 0.0, 1.0);
-    debug_lines.add_direction(origin, y_axis_direction, y_axis_color);
+    // debug_lines.add_direction(origin, y_axis_direction, y_axis_color);
+    debug_lines.add_line(origin, origin + y_axis_direction * axis_length, y_axis_color);
 
     let z_axis_direction = Vector3::new(0.0, 0.0, 1.0);
     let z_axis_color = Srgba::new(0.0, 0.0, 1.0, 1.0);
-    debug_lines.add_direction(origin, z_axis_direction, z_axis_color);
+    // debug_lines.add_direction(origin, z_axis_direction, z_axis_color);
+    debug_lines.add_line(origin, origin + z_axis_direction * axis_length, z_axis_color);
 
     world.create_entity().with(debug_lines).build();
 }
@@ -215,13 +224,13 @@ fn spawn_axis(world: &mut World) {
 
 fn spawn_blocks(world: &mut World) {
     let mut rng = rand::thread_rng();
-    let range = 4_i128; // 4, 16, 128
-    let chunks = 1_i32; // 1, 8, 256
+    let range = 32_i128; // 4, 16, 64
+    let chunks = 256_i32; // 1, 8, 256
     let axis = Uniform::from(-range..range);
     for _ in 0..(chunks * 16) {
-        // let (x, y, z) = (axis.sample(&mut rng), axis.sample(&mut rng), axis.sample(&mut rng));
-        let (x, y, z) = (axis.sample(&mut rng), 0, axis.sample(&mut rng));
-        spawn_block(world, [x, y, z], Material::Grass);
+        let (x, y, z) = (axis.sample(&mut rng), axis.sample(&mut rng), axis.sample(&mut rng));
+        // let (x, y, z) = (axis.sample(&mut rng), 0, axis.sample(&mut rng));
+        spawn_block(world, [x, y, z], Material::Dirt);
     }
 }
 
@@ -233,8 +242,22 @@ fn spawn_block(world: &mut World, position: [i128; 3], material: Material) {
         position[2] as f32 + 0.5,
     );
 
-    let block = Block { position, material };
+    let block = Voxel { position, material };
     block.create_entity(world).with(trans).build();
+}
+
+fn spawn_block_sphere(world: &mut World, radius: i128) {
+    let r = radius as f32;
+    for x in -radius..=radius {
+        for y in -radius..=radius {
+            for z in -radius..=radius {
+                let distance = ((x * x + y * y + z * z) as f32).sqrt();
+                if distance <= r {
+                    spawn_block(world, [x, y, z], Material::Dirt);
+                }
+            }
+        }
+    }
 }
 
 // endregion

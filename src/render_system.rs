@@ -45,7 +45,8 @@ use thread_profiler::profile_scope;
 // use amethyst::renderer::system::GraphCreator;
 
 use crate::render_material::{Material, MaterialComposition, MaterialDefaults};
-use crate::render_mesh::{ExtendedBackend, Mesh, MeshElement};
+use crate::render_mesh::{ExtendedBackend, CompositeMesh, Mesh};
+use crate::render_cache::{TextureCache, MeshCache, MaterialCache};
 
 /// Extended Amethyst rendering system
 // #[allow(missing_debug_implementations)]
@@ -78,11 +79,11 @@ pub struct ExtendedRenderingSystem<B: ExtendedBackend>(PhantomData<B>); //, G>
 
 type SetupData<'a> = (
     ReadStorage<'a, MaterialComposition>,
-    ReadStorage<'a, Mesh>,
+    ReadStorage<'a, CompositeMesh>,
     ReadStorage<'a, Handle<Material>>,
-    ReadStorage<'a, Handle<MeshElement>>,
+    ReadStorage<'a, Handle<Mesh>>,
     Read<'a, AssetStorage<Material>>,
-    Read<'a, AssetStorage<MeshElement>>,
+    Read<'a, AssetStorage<Mesh>>,
 );
 
 impl<'a, B: ExtendedBackend> System<'a> for ExtendedRenderingSystem<B> {
@@ -93,6 +94,13 @@ impl<'a, B: ExtendedBackend> System<'a> for ExtendedRenderingSystem<B> {
 
         let mat = create_default_mat::<B>(world);
         world.insert(MaterialDefaults(mat));
+
+        let textures = TextureCache::new();
+        let meshes = MeshCache::new();
+        let materials = MaterialCache::new();
+        world.insert(textures);
+        world.insert(meshes);
+        world.insert(materials);
     }
 
     fn run(&mut self, _data: Self::SystemData) {}
@@ -201,7 +209,7 @@ pub struct MeshProcessorSystem<B: ExtendedBackend>(PhantomData<B>);
 impl<'a, B: ExtendedBackend> System<'a> for MeshProcessorSystem<B> {
     type SystemData = (
         // Write<'a, AssetStorage<Mesh>>,
-        Write<'a, AssetStorage<MeshElement>>,
+        Write<'a, AssetStorage<Mesh>>,
         ReadExpect<'a, QueueId>,
         Read<'a, Time>,
         ReadExpect<'a, Arc<ThreadPool>>,
@@ -247,7 +255,7 @@ impl<'a, B: ExtendedBackend> System<'a> for MeshProcessorSystem<B> {
         // if let Some(mut storage) = world.try_fetch_mut::<AssetStorage<Mesh>>() {
         //     storage.unload_all();
         // }
-        if let Some(mut storage) = world.try_fetch_mut::<AssetStorage<MeshElement>>() {
+        if let Some(mut storage) = world.try_fetch_mut::<AssetStorage<Mesh>>() {
             storage.unload_all();
         }
     }

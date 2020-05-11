@@ -38,9 +38,9 @@ use std::{borrow::Cow, mem::size_of};
 // }
 
 pub trait ExtendedBackend: Backend {
-    fn unwrap_mesh_element(mesh: &MeshElement) -> Option<&GenericMeshElement<Self>>;
+    fn unwrap_mesh_element(mesh: &Mesh) -> Option<&GenericMesh<Self>>;
 
-    fn wrap_mesh_element(mesh: GenericMeshElement<Self>) -> MeshElement;
+    fn wrap_mesh_element(mesh: GenericMesh<Self>) -> Mesh;
 }
 
 // macro_rules! impl_backends {
@@ -148,30 +148,30 @@ pub type DefaultExtendedBackend = rendy::metal::Backend;
 
 /// Mesh wrapper.
 /// #[derive(Debug)]
-pub struct Mesh {
-    // pub element: Handle<MeshElement>
-    pub elements: Vec<Handle<MeshElement>>
+pub struct CompositeMesh {
+    // pub element: Handle<Mesh>
+    pub elements: Vec<Handle<Mesh>>
 }
 
 /// Mesh element wrapper.
 #[derive(Debug)]
-pub enum MeshElement {
-    Metal(GenericMeshElement<rendy::metal::Backend>),
+pub enum Mesh {
+    Metal(GenericMesh<rendy::metal::Backend>),
 }
 
 impl ExtendedBackend for rendy::metal::Backend {
     #[inline]
     #[allow(irrefutable_let_patterns)]
-    fn unwrap_mesh_element(mesh: &MeshElement) -> Option<&GenericMeshElement<Self>> {
-        if let MeshElement::Metal(inner) = mesh {
+    fn unwrap_mesh_element(mesh: &Mesh) -> Option<&GenericMesh<Self>> {
+        if let Mesh::Metal(inner) = mesh {
             Some(inner)
         } else {
             None
         }
     }
     #[inline]
-    fn wrap_mesh_element(mesh: GenericMeshElement<Self>) -> MeshElement {
-        MeshElement::Metal(mesh)
+    fn wrap_mesh_element(mesh: GenericMesh<Self>) -> Mesh {
+        Mesh::Metal(mesh)
     }
 }
 
@@ -179,17 +179,17 @@ impl ExtendedBackend for rendy::metal::Backend {
 
 // region - Assets
 
-impl Component for Mesh {
+impl Component for CompositeMesh {
     // const NAME: &'static str = "custom:Mesh";
     // type Data = Self;
     // type HandleStorage = DenseVecStorage<Handle<Self>>;
     type Storage = DenseVecStorage<Self>;
 }
 
-amethyst::assets::register_format_type!(MeshElementData);
-impl Asset for MeshElement {
-    const NAME: &'static str = "custom:MeshElement";
-    type Data = MeshElementData;
+amethyst::assets::register_format_type!(MeshData);
+impl Asset for Mesh {
+    const NAME: &'static str = "custom:Mesh";
+    type Data = MeshData;
     type HandleStorage = DenseVecStorage<Handle<Self>>;
 }
 
@@ -205,13 +205,13 @@ impl Asset for MeshElement {
 
 /// Newtype for MeshBuilder prefab usage.
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MeshElementData(#[serde(deserialize_with = "deserialize_data")] pub MeshBuilder<'static>);
+pub struct MeshData(#[serde(deserialize_with = "deserialize_data")] pub MeshBuilder<'static>);
 
 // /// Newtype for TextureBuilder prefab usage.
 // #[derive(Debug, Clone, Serialize, Deserialize)]
 // pub struct TextureData(pub rendy::texture::TextureBuilder<'static>);
 
-impl From<MeshBuilder<'static>> for MeshElementData {
+impl From<MeshBuilder<'static>> for MeshData {
     fn from(builder: MeshBuilder<'static>) -> Self {
         Self(builder)
     }
@@ -344,7 +344,7 @@ impl<'a> MeshBuilder<'a> {
         MeshBuilder {
             vertices: smallvec::SmallVec::new(),
             indices: None,
-            prim: gfx_hal::Primitive::TriangleList,
+            prim: gfx_hal::Primitive::TriangleStrip,
         }
     }
 
@@ -368,33 +368,33 @@ impl<'a> MeshBuilder<'a> {
         }
     }
 
-    // /// Set indices buffer to the `MeshBuilder`
-    // pub fn with_indices<I>(mut self, indices: I) -> Self
-    // where
-    //     I: Into<Indices<'a>>,
-    // {
-    //     self.set_indices(indices);
-    //     self
-    // }
+    /// Set indices buffer to the `MeshBuilder`
+    pub fn with_indices<I>(mut self, indices: I) -> Self
+    where
+        I: Into<Indices<'a>>,
+    {
+        self.set_indices(indices);
+        self
+    }
 
-    // /// Set indices buffer to the `MeshBuilder`
-    // pub fn set_indices<I>(&mut self, indices: I) -> &mut Self
-    // where
-    //     I: Into<Indices<'a>>,
-    // {
-    //     self.indices = match indices.into() {
-    //         // Indices::None => None,
-    //         // Indices::U16(i) => Some(RawIndices {
-    //         //     indices: cast_cow(i),
-    //         //     index_type: gfx_hal::IndexType::U16,
-    //         // }),
-    //         Indices::U32(i) => Some(RawIndices {
-    //             indices: cast_cow(i),
-    //             index_type: gfx_hal::IndexType::U32,
-    //         }),
-    //     };
-    //     self
-    // }
+    /// Set indices buffer to the `MeshBuilder`
+    pub fn set_indices<I>(&mut self, indices: I) -> &mut Self
+    where
+        I: Into<Indices<'a>>,
+    {
+        self.indices = match indices.into() {
+            // Indices::None => None,
+            // Indices::U16(i) => Some(RawIndices {
+            //     indices: cast_cow(i),
+            //     index_type: gfx_hal::IndexType::U16,
+            // }),
+            Indices::U32(i) => Some(RawIndices {
+                indices: cast_cow(i),
+                index_type: gfx_hal::IndexType::U32,
+            }),
+        };
+        self
+    }
 
     /// Add another vertices to the `MeshBuilder`
     pub fn with_vertices<V, D>(mut self, vertices: D) -> Self
@@ -419,13 +419,13 @@ impl<'a> MeshBuilder<'a> {
         self
     }
 
-    // /// Sets the primitive type of the mesh.
-    // ///
-    // /// By default, meshes are constructed as triangle lists.
-    // pub fn with_prim_type(mut self, prim: gfx_hal::Primitive) -> Self {
-    //     self.prim = prim;
-    //     self
-    // }
+    /// Sets the primitive type of the mesh.
+    ///
+    /// By default, meshes are constructed as triangle lists.
+    pub fn with_prim_type(mut self, prim: gfx_hal::Primitive) -> Self {
+        self.prim = prim;
+        self
+    }
 
     // /// Sets the primitive type of the mesh.
     // ///
@@ -442,7 +442,7 @@ impl<'a> MeshBuilder<'a> {
     /// effectively discaring extra data from larger buffers.
     ///
     /// Note that contents of index buffer is not validated.
-    pub fn build<B>(&self, queue: QueueId, factory: &Factory<B>) -> Result<GenericMeshElement<B>, failure::Error>
+    pub fn build<B>(&self, queue: QueueId, factory: &Factory<B>) -> Result<GenericMesh<B>, failure::Error>
     where
         B: gfx_hal::Backend,
     {
@@ -543,7 +543,7 @@ impl<'a> MeshBuilder<'a> {
             )?;
         }
 
-        Ok(GenericMeshElement {
+        Ok(GenericMesh {
             vertex_layouts,
             index_buffer,
             vertex_buffer: buffer,
@@ -562,7 +562,7 @@ fn align_by(align: usize, value: usize) -> usize {
 /// Single mesh is a collection of buffer ranges that provides available attributes.
 /// Usually exactly one mesh is used per draw call.
 #[derive(Debug)]
-pub struct GenericMeshElement<B: gfx_hal::Backend> {
+pub struct GenericMesh<B: gfx_hal::Backend> {
     vertex_buffer: Escape<Buffer<B>>,
     vertex_layouts: Vec<VertexBufferLayout>,
     index_buffer: Option<IndexBuffer<B>>,
@@ -570,7 +570,7 @@ pub struct GenericMeshElement<B: gfx_hal::Backend> {
     len: u32,
 }
 
-impl<B> GenericMeshElement<B>
+impl<B> GenericMesh<B>
 where
     B: gfx_hal::Backend,
 {

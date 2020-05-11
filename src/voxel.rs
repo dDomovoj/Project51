@@ -2,9 +2,9 @@
 // use crate::bundles::camera_control_bundle::{MouseControlTag, CreativeMovementControlTag};
 
 use amethyst::{
-    assets::{AssetStorage, Loader, Handle},
     assets::AssetLoaderSystemData, //, Handle, Loader},
-    ecs::{EntityBuilder, WorldExt, Write, Read},
+    assets::{AssetStorage, Handle, Loader},
+    ecs::{EntityBuilder, Read, WorldExt, Write},
     // controls::HideCursor,
     // core::{
     //     transform::Transform,
@@ -16,7 +16,7 @@ use amethyst::{
     renderer::{
         // mtl::{Material as AmethystMaterial, MaterialDefaults},
         // palette::{Srgb, Srgba, LinSrgba},
-        rendy::mesh::{Normal, Position, TexCoord},//, MeshBuilder},
+        rendy::mesh::{Normal, Position, TexCoord}, //, MeshBuilder},
         // transparent::Transparent,
         // types::{Mesh, MeshData},//, Texture},
         types::Texture,
@@ -30,8 +30,9 @@ use amethyst::{
 
 use amethyst::ecs::prelude::{Component, DenseVecStorage};
 
-use crate::render_mesh::{Mesh, MeshElement, MeshBuilder, MeshElementData};
+use crate::render_cache::{MaterialCache, MeshCache, TextureCache};
 use crate::render_material::{Material as RenderMaterial, MaterialComposition, MaterialDefaults};
+use crate::render_mesh::{CompositeMesh, MeshBuilder, Mesh, MeshData};
 
 use amethyst::ecs::shred::SystemData;
 
@@ -41,16 +42,16 @@ pub enum Material {
     Crate,
 }
 
-pub struct Block {
+pub struct Voxel {
     pub position: [i128; 3],
     pub material: Material,
 }
 
-impl Component for Block {
+impl Component for Voxel {
     type Storage = DenseVecStorage<Self>;
 }
 
-impl Block {
+impl Voxel {
     fn texture_name(&self) -> &str {
         match &self.material {
             Material::Grass => "grass_block_side",
@@ -61,44 +62,58 @@ impl Block {
 
     pub fn create_entity<'a>(&self, world: &'a mut World) -> EntityBuilder<'a> {
         // let mesh = world.exec(|loader: AssetLoaderSystemData<Mesh>| loader.load_from_data(block_mesh(), ()));
-        let mesh_element = world.exec(|loader: AssetLoaderSystemData<MeshElement>| loader.load_from_data(block_mesh(), ()));
-        let mesh = Mesh { elements: vec!(mesh_element) };
+        // let mesh_element = {
+        //     world.exec(|loader: AssetLoaderSystemData<MeshElement>| loader.load_from_data(block_mesh(), ()))
+        // };
+        let mesh_element = {
+            MeshCache::item(0, world, |res: &mut World| {
+                res.exec(|loader: AssetLoaderSystemData<Mesh>| loader.load_from_data(block_mesh(), ()))
+            })
+        };
+        let mesh = CompositeMesh {
+            elements: vec![mesh_element],
+        };
 
-        let texture = world.exec(|loader: AssetLoaderSystemData<Texture>| {
-            loader.load(
-                format!("texture/{}.png", self.texture_name()),
-                ImageFormat::default(),
-                (),
-            )
-        });
+        let texture = {
+            TextureCache::item(0, world, |res: &mut World| {
+                res.exec(|loader: AssetLoaderSystemData<Texture>| {
+                    loader.load(
+                        format!("texture/{}.png", self.texture_name()),
+                        ImageFormat::default(),
+                        (),
+                    )
+                })
+            })
+        };
 
-        let default_mat = world.read_resource::<MaterialDefaults>().0.clone();
-        // let mat = world.exec(|loader: AssetLoaderSystemData<AmethystMaterial>| 
+        // let mat = world.exec(|loader: AssetLoaderSystemData<AmethystMaterial>|
         //     loader.load_from_data(AmethystMaterial {
         //         albedo: texture,
         //         ..default_mat.clone()
         //     }, ())
         // );
-        let mat_element = {
-            let mut materials_asset = <Write<'_, AssetStorage<RenderMaterial>>>::fetch(world);
-            let data = RenderMaterial {
-                diffuse: texture,
-                ..default_mat.clone()
-            };
-            materials_asset.insert(data)
+        let mat_elt = {
+            MaterialCache::item(0, world, |res: &mut World| {
+                let default_mat = res.read_resource::<MaterialDefaults>().0.clone();
+                let mut materials_asset = <Write<'_, AssetStorage<RenderMaterial>>>::fetch(res);
+                let data = RenderMaterial {
+                    diffuse: texture,
+                    ..default_mat.clone()
+                };
+                materials_asset.insert(data)
+            })
         };
-        let mat = MaterialComposition { components: vec!(mat_element) };
+        let mat = MaterialComposition {
+            components: vec![mat_elt],
+        };
 
-        world.create_entity()
-            .with(mesh)
-            .with(mat)
-            // .with(Transparent::default())
+        world.create_entity().with(mesh).with(mat)
+        // .with(Transparent::default())
     }
 }
 
 #[rustfmt::skip::attributes]
-// fn block_mesh() -> MeshData {
-fn block_mesh() -> MeshElementData {
+fn block_mesh() -> MeshData {
     let v: [[f32; 3]; 8] = [
         [-0.5, -0.5, 0.5],
         [-0.5, -0.5, -0.5],
@@ -167,7 +182,7 @@ fn block_mesh() -> MeshElementData {
     let pos: Vec<Position> = pos.iter().map(|&coords| Position(coords)).collect();
     let norm: Vec<Normal> = norm.iter().map(|&coords| Normal(coords)).collect();
     // let tn: Vec<Tangent> = tn.iter().map(|&coords| { Tangent(coords) }).collect();
-    let tex: Vec<TexCoord> = tex.iter().map(|&coords| { TexCoord(coords) }).collect();
+    let tex: Vec<TexCoord> = tex.iter().map(|&coords| TexCoord(coords)).collect();
     MeshBuilder::new()
         .with_vertices(pos)
         .with_vertices(norm)

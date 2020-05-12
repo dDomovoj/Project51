@@ -10,24 +10,27 @@ use amethyst::{
     utils::application_root_dir,
     Error,
 };
-use amethyst::utils::fps_counter::{FpsCounter, FpsCounterBundle};
+use amethyst::utils::fps_counter::{FpsCounterBundle};
 use amethyst::ui::{RenderUi, UiBundle};
 
-mod voxel;
 mod bundles;
 mod game_start;
 
 #[macro_use]
 mod render_macros;
-mod render_material;
+
+mod render_cache;
+mod render_chunk;
 mod render_material_sub;
+mod render_material;
 mod render_mesh;
 mod render_pass;
 mod render_plugins;
 mod render_shader;
 mod render_system;
 mod render_vertex;
-mod render_cache;
+mod render_visibility;
+mod render_voxel;
 mod systems;
 
 use crate::bundles::camera_control_bundle::CameraControlBundle;

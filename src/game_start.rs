@@ -1,5 +1,5 @@
 // use std::path::PathBuf;
-use crate::voxel::{Voxel, Material};
+use crate::render_voxel::{Voxel, Material};
 use crate::bundles::camera_control_bundle::{CreativeMovementControlTag, MouseControlTag};
 
 use amethyst::{
@@ -40,42 +40,27 @@ use amethyst::{
     winit::{MouseButton, VirtualKeyCode},
 };
 
-use std::f32::consts::{FRAC_PI_6, FRAC_PI_8};
+use std::f32::consts::{FRAC_PI_4, FRAC_PI_8};
 
 extern crate rand;
 use rand::distributions::{Distribution, Uniform};
 
 pub struct GameStart;
 
-impl SimpleState for GameStart {
-    // pub fn new(fonts_dir: PathBuf, audio_dir: PathBuf) -> Pong {
-    //     Pong {
-    //         ball_spawn_timer: None,
-    //         sprite_sheet_handle: None,
-    //         fonts_dir,
-    //         audio_dir
-    //     }
-    // }
+const SPHERE_RADIUS: f32 = 6.0_f32;
+const CAMERA_DISTANCE_M: f32 = 6.0_f32;
 
+impl SimpleState for GameStart {
+    
     fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
         let world = data.world;
-        // // Load the spritesheet necessary to render the graphics.
-        // // `spritesheet` is the layout of the sprites on the image;
-        // // `texture` is the pixel data.
-        // self.sprite_sheet_handle.replace(load_sprite_sheet(world));
-
-        // use crate::render_mesh::Mesh;
-        // world.register::<Mesh>();
 
         spawn_axis(world);
         // spawn_blocks(world);
-        spawn_block_sphere(world, 8);
+        spawn_block_sphere(world, SPHERE_RADIUS);
         spawn_lights(world);
         initialize_camera(world);
         initialize_ui(world);
-
-        // audio::initialise_audio(world, &self.audio_dir);
-        // ui::initialize_scoreboard(world, &self.fonts_dir);
     }
 
     fn handle_event(&mut self, data: StateData<'_, GameData<'_, '_>>, event: StateEvent) -> SimpleTrans {
@@ -96,11 +81,11 @@ impl SimpleState for GameStart {
 // region - Camera
 
 fn initialize_camera(world: &mut World) {
+    let distance = CAMERA_DISTANCE_M;
     let mut transform = Transform::default();
     transform
-        // .set_translation_xyz(-1.5, 1.5, 3.0)
-        .set_translation_xyz(-7.5, 7.5, 15.)
-        .append_rotation_y_axis(-FRAC_PI_6)
+        .set_translation_xyz(2. * distance, 1. * distance, 2. * distance)
+        .append_rotation_y_axis(FRAC_PI_4)
         .append_rotation_x_axis(-FRAC_PI_8);
 
     let (width, height) = {
@@ -222,7 +207,7 @@ fn spawn_axis(world: &mut World) {
 
 // region - Blocks
 
-fn spawn_blocks(world: &mut World) {
+fn _spawn_blocks(world: &mut World) {
     let mut rng = rand::thread_rng();
     let range = 32_i128; // 4, 16, 64
     let chunks = 256_i32; // 1, 8, 256
@@ -237,23 +222,28 @@ fn spawn_blocks(world: &mut World) {
 fn spawn_block(world: &mut World, position: [i128; 3], material: Material) {
     let mut trans = Transform::default();
     trans.append_translation_xyz(
-        position[0] as f32 + 0.5,
-        position[1] as f32 + 0.5,
-        position[2] as f32 + 0.5,
+        position[0] as f32,
+        position[1] as f32,
+        position[2] as f32,
     );
 
     let block = Voxel { position, material };
     block.create_entity(world).with(trans).build();
 }
 
-fn spawn_block_sphere(world: &mut World, radius: i128) {
-    let r = radius as f32;
-    for x in -radius..=radius {
-        for y in -radius..=radius {
-            for z in -radius..=radius {
-                let distance = ((x * x + y * y + z * z) as f32).sqrt();
-                if distance <= r {
-                    spawn_block(world, [x, y, z], Material::Dirt);
+fn spawn_block_sphere(world: &mut World, radius: f32) {
+    let r = radius.ceil() as i128;
+    for x in -r..=r {
+        for y in -r..=r {
+            for z in -r..=r {
+                let distance = {
+                    let x = (x as f32) + 0.5;
+                    let y = (y as f32) + 0.5;
+                    let z = (z as f32) + 0.5;
+                    (x * x + y * y + z * z).sqrt()
+                };
+                if distance <= radius {
+                    spawn_block(world, [x, y, z], Material::Grass);
                 }
             }
         }

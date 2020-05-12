@@ -1,26 +1,26 @@
 //! Module for mesh support.
 use amethyst::assets::{Asset, Handle};
 // use amethyst::assets::{AssetPrefab, AssetStorage, Format, Handle, Loader, PrefabData, ProgressCounter};
-use amethyst::core::ecs::{DenseVecStorage, Component};
+use amethyst::core::ecs::{Component, DenseVecStorage};
 // use amethyst::core::ecs::{Entity, Read, ReadExpect, WriteStorage};
 // use amethyst::error::Error;
-use amethyst::renderer::{
-    // shape::{FromShape, ShapePrefab},
-    types::Backend,
-};
+use amethyst::renderer::types::Backend;
 use serde::{Deserialize, Serialize};
 
 use amethyst::renderer::rendy::{
     self as rendy,
-    command::{QueueId, RenderPassEncoder},//EncoderCommon, Graphics, Supports},
+    command::{QueueId, RenderPassEncoder}, //EncoderCommon, Graphics, Supports},
     factory::{BufferState, Factory},
     memory::{Data, Upload, Write},
     mesh::{AsVertex, VertexFormat},
     resource::{Buffer, BufferInfo, Escape},
     util::cast_cow,
+    mesh::{Normal, Position, TexCoord},
 };
 use gfx_hal::adapter::PhysicalDevice;
 use std::{borrow::Cow, mem::size_of};
+
+// endregion
 
 // region - Backend
 
@@ -150,7 +150,7 @@ pub type DefaultExtendedBackend = rendy::metal::Backend;
 /// #[derive(Debug)]
 pub struct CompositeMesh {
     // pub element: Handle<Mesh>
-    pub elements: Vec<Handle<Mesh>>
+    pub elements: Vec<Handle<Mesh>>,
 }
 
 /// Mesh element wrapper.
@@ -344,7 +344,7 @@ impl<'a> MeshBuilder<'a> {
         MeshBuilder {
             vertices: smallvec::SmallVec::new(),
             indices: None,
-            prim: gfx_hal::Primitive::TriangleStrip,
+            prim: gfx_hal::Primitive::TriangleList,
         }
     }
 
@@ -419,13 +419,13 @@ impl<'a> MeshBuilder<'a> {
         self
     }
 
-    /// Sets the primitive type of the mesh.
-    ///
-    /// By default, meshes are constructed as triangle lists.
-    pub fn with_prim_type(mut self, prim: gfx_hal::Primitive) -> Self {
-        self.prim = prim;
-        self
-    }
+    // /// Sets the primitive type of the mesh.
+    // ///
+    // /// By default, meshes are constructed as triangle lists.
+    // pub fn with_prim_type(mut self, prim: gfx_hal::Primitive) -> Self {
+    //     self.prim = prim;
+    //     self
+    // }
 
     // /// Sets the primitive type of the mesh.
     // ///
@@ -762,5 +762,28 @@ macro_rules! impl_builder_from_vec {
 }
 
 impl_builder_from_vec!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
+
+// endregion
+
+// region - Vertex
+
+#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
+pub struct Vertex {
+    pub xyz: [f32; 3],
+    pub norm: [f32; 3],
+    pub uv: [f32; 2],
+}
+
+impl AsVertex for Vertex {
+
+    fn vertex() -> VertexFormat {
+        VertexFormat::new((Position::vertex(), Normal::vertex(), TexCoord::vertex()))
+    }
+
+}
+
+// region - MeshBuilder
+
+pub struct NewMeshBuilder {}
 
 // endregion

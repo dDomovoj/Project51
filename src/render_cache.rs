@@ -7,8 +7,6 @@ use amethyst::ecs::{WorldExt};
 use crate::render_mesh::Mesh;
 use crate::render_material::Material;
 
-use std::collections::HashSet;
-
 macro_rules! impl_cache {
     ($name:ident, $type:ident, $elt:ident) => {
         #[derive(Debug, Clone)]

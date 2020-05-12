@@ -6,17 +6,17 @@ use amethyst::{
     assets::{AssetStorage, Handle, Loader},
     ecs::{EntityBuilder, Read, WorldExt, Write},
     // controls::HideCursor,
-    // core::{
+    core::{
     //     transform::Transform,
-    //     math::{Point2, Point3, UnitQuaternion, Vector2, Vector3},
-    // },
+        math::{Point3, Vector3},
+    },
     // error::Error,
     // input::{is_key_down, is_mouse_button_down},
     prelude::*,
     renderer::{
         // mtl::{Material as AmethystMaterial, MaterialDefaults},
         // palette::{Srgb, Srgba, LinSrgba},
-        rendy::mesh::{Normal, Position, TexCoord}, //, MeshBuilder},
+        // rendy::mesh::{Normal, Position, TexCoord}, //, MeshBuilder},
         // transparent::Transparent,
         // types::{Mesh, MeshData},//, Texture},
         types::Texture,
@@ -32,7 +32,8 @@ use amethyst::ecs::prelude::{Component, DenseVecStorage};
 
 use crate::render_cache::{MaterialCache, MeshCache, TextureCache};
 use crate::render_material::{Material as RenderMaterial, MaterialComposition, MaterialDefaults};
-use crate::render_mesh::{CompositeMesh, MeshBuilder, Mesh, MeshData};
+use crate::render_mesh::{CompositeMesh, Indices, Mesh, MeshBuilder, MeshData, Vertex};
+use crate::render_visibility::BoundingSphere;
 
 use amethyst::ecs::shred::SystemData;
 
@@ -107,86 +108,66 @@ impl Voxel {
             components: vec![mat_elt],
         };
 
+        let bounds = BoundingSphere {
+            center: Vector3::new(0.5, 0.5, 0.5).into(),
+            radius: 0.8705505633_f32
+        };
+
         world.create_entity().with(mesh).with(mat)
+            .with(bounds)
         // .with(Transparent::default())
     }
 }
 
-#[rustfmt::skip::attributes]
+#[cfg_attr(rustfmt, rustfmt_skip)]
 fn block_mesh() -> MeshData {
-    let v: [[f32; 3]; 8] = [
-        [-0.5, -0.5, 0.5],
-        [-0.5, -0.5, -0.5],
-        [0.5, -0.5, 0.5],
-        [0.5, -0.5, -0.5],
-        [-0.5, 0.5, 0.5],
-        [-0.5, 0.5, -0.5],
-        [0.5, 0.5, 0.5],
-        [0.5, 0.5, -0.5],
-    ];
+    
+    #[cfg_attr(rustfmt, rustfmt_skip)]
+    let vertices: Vec<Vertex> = vec!(
+      // Face 1 (front)
+      Vertex { xyz: [0.0, 0.0, 0.0], norm: [0.0, 0.0, -1.0], uv: [1.0, 1.0] }, /* bottom left */
+      Vertex { xyz: [0.0, 1.0, 0.0], norm: [0.0, 0.0, -1.0], uv: [1.0, 0.0] }, /* top left */
+      Vertex { xyz: [1.0, 0.0, 0.0], norm: [0.0, 0.0, -1.0], uv: [0.0, 1.0] }, /* bottom right */
+      Vertex { xyz: [1.0, 1.0, 0.0], norm: [0.0, 0.0, -1.0], uv: [0.0, 0.0] }, /* top right */
+      // Face 2 (top)
+      Vertex { xyz: [0.0, 1.0, 0.0], norm: [0.0, 1.0, 0.0], uv: [1.0, 1.0] }, /* bottom left */
+      Vertex { xyz: [0.0, 1.0, 1.0], norm: [0.0, 1.0, 0.0], uv: [1.0, 0.0] }, /* top left */
+      Vertex { xyz: [1.0, 1.0, 0.0], norm: [0.0, 1.0, 0.0], uv: [0.0, 1.0] }, /* bottom right */
+      Vertex { xyz: [1.0, 1.0, 1.0], norm: [0.0, 1.0, 0.0], uv: [0.0, 0.0] }, /* top right */
+      // Face 3 (back)
+      Vertex { xyz: [0.0, 0.0, 1.0], norm: [0.0, 0.0, 1.0], uv: [0.0, 1.0] }, /* bottom left */
+      Vertex { xyz: [0.0, 1.0, 1.0], norm: [0.0, 0.0, 1.0], uv: [0.0, 0.0] }, /* top left */
+      Vertex { xyz: [1.0, 0.0, 1.0], norm: [0.0, 0.0, 1.0], uv: [1.0, 1.0] }, /* bottom right */
+      Vertex { xyz: [1.0, 1.0, 1.0], norm: [0.0, 0.0, 1.0], uv: [1.0, 0.0] }, /* top right */
+      // Face 4 (bottom)
+      Vertex { xyz: [0.0, 0.0, 0.0], norm: [0.0, -1.0, 0.0], uv: [1.0, 1.0] }, /* bottom left */
+      Vertex { xyz: [0.0, 0.0, 1.0], norm: [0.0, -1.0, 0.0], uv: [1.0, 0.0] }, /* top left */
+      Vertex { xyz: [1.0, 0.0, 0.0], norm: [0.0, -1.0, 0.0], uv: [0.0, 1.0] }, /* bottom right */
+      Vertex { xyz: [1.0, 0.0, 1.0], norm: [0.0, -1.0, 0.0], uv: [0.0, 0.0] }, /* top right */
+      // Face 5 (left)
+      Vertex { xyz: [0.0, 0.0, 1.0], norm: [-1.0, 0.0, 0.0], uv: [1.0, 1.0] }, /* bottom left */
+      Vertex { xyz: [0.0, 1.0, 1.0], norm: [-1.0, 0.0, 0.0], uv: [1.0, 0.0] }, /* top left */
+      Vertex { xyz: [0.0, 0.0, 0.0], norm: [-1.0, 0.0, 0.0], uv: [0.0, 1.0] }, /* bottom right */
+      Vertex { xyz: [0.0, 1.0, 0.0], norm: [-1.0, 0.0, 0.0], uv: [0.0, 0.0] }, /* top right */
+      // Face 6 (right)
+      Vertex { xyz: [1.0, 0.0, 0.0], norm: [1.0, 0.0, 0.0], uv: [1.0, 1.0] }, /* bottom left */
+      Vertex { xyz: [1.0, 1.0, 0.0], norm: [1.0, 0.0, 0.0], uv: [1.0, 0.0] }, /* top left */
+      Vertex { xyz: [1.0, 0.0, 1.0], norm: [1.0, 0.0, 0.0], uv: [0.0, 1.0] }, /* bottom right */
+      Vertex { xyz: [1.0, 1.0, 1.0], norm: [1.0, 0.0, 0.0], uv: [0.0, 0.0] }, /* top right */
+    );
 
-    let pos: [[f32; 3]; 36] = [
-        v[2], v[1], v[3], v[2], v[0], v[1], // D - v
-        v[7], v[4], v[6], v[7], v[5], v[4], // U - v
-        v[6], v[0], v[2], v[6], v[4], v[0], // F - v
-        v[3], v[5], v[7], v[3], v[1], v[5], // B - v
-        v[4], v[1], v[0], v[4], v[5], v[1], // L - v
-        v[7], v[2], v[3], v[7], v[6], v[2], // R - v
-    ];
+    #[cfg_attr(rustfmt, rustfmt_skip)]
+    let indices: Vec::<u32> = vec!(
+        0,  1,  2,  2,  1,  3, // front
+        4,  5,  6,  7,  6,  5, // top
+        10,  9,  8,  9, 10, 11, // back
+        12, 14, 13, 15, 13, 14, // bottom
+        16, 17, 18, 19, 18, 17, // left
+        20, 21, 22, 23, 22, 21, // right
+    );
 
-    let n: [[f32; 3]; 6] = [
-        [0.0, -1.0, 0.0], // D - v
-        [0.0, 1.0, 0.0],  // U - v
-        [0.0, 0.0, 1.0],  // F - v
-        [0.0, 0.0, -1.0], // B - v
-        [-1.0, 0.0, 0.0], // L - v
-        [1.0, 0.0, 0.0],  // R - v
-    ];
-
-    let norm: [[f32; 3]; 36] = [
-        n[0], n[0], n[0], n[0], n[0], n[0], // D - v
-        n[1], n[1], n[1], n[1], n[1], n[1], // U - v
-        n[2], n[2], n[2], n[2], n[2], n[2], // F - v
-        n[3], n[3], n[3], n[3], n[3], n[3], // B - v
-        n[4], n[4], n[4], n[4], n[4], n[4], // L - v
-        n[5], n[5], n[5], n[5], n[5], n[5], // R - v
-    ];
-
-    // let t: [[f32; 4]; 6] = [
-    //     [1.0, 0.0, 1.0, 1.0], // D - v
-    //     [1.0, 0.0, 1.0, 1.0], // U - v
-    //     [1.0, 1.0, 0.0, 1.0], // F - v
-    //     [1.0, 1.0, 0.0, 1.0], // B - v
-    //     [0.0, 1.0, 1.0, 1.0], // L - v
-    //     [0.0, 1.0, 1.0, 1.0], // R - v
-    // ];
-
-    // let tn: [[f32; 4]; 36] = [
-    //     t[0], t[0], t[0], t[0], t[0], t[0], // D - v
-    //     t[1], t[1], t[1], t[1], t[1], t[1], // U - v
-    //     t[2], t[2], t[2], t[2], t[2], t[2], // F - v
-    //     t[3], t[3], t[3], t[3], t[3], t[3], // B - v
-    //     t[4], t[4], t[4], t[4], t[4], t[4], // L - v
-    //     t[5], t[5], t[5], t[5], t[5], t[5], // R - v
-    // ];
-
-    let tex: [[f32; 2]; 36] = [
-        [0., 1.], [1., 0.], [0., 0.],  [0., 1.], [1., 1.], [1., 0.], // D - v
-        [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // U - v
-        [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // F - v
-        [1., 1.], [0., 0.], [1., 0.],  [1., 1.], [0., 1.], [0., 0.], // B - v
-        [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // L - v
-        [1., 0.], [0., 1.], [1., 1.],  [1., 0.], [0., 0.], [0., 1.], // R - v
-    ];
-
-    let pos: Vec<Position> = pos.iter().map(|&coords| Position(coords)).collect();
-    let norm: Vec<Normal> = norm.iter().map(|&coords| Normal(coords)).collect();
-    // let tn: Vec<Tangent> = tn.iter().map(|&coords| { Tangent(coords) }).collect();
-    let tex: Vec<TexCoord> = tex.iter().map(|&coords| TexCoord(coords)).collect();
     MeshBuilder::new()
-        .with_vertices(pos)
-        .with_vertices(norm)
-        // .with_vertices(tn)
-        .with_vertices(tex)
+        .with_vertices(vertices)
+        .with_indices(Indices::U32(indices.into()))
         .into()
 }

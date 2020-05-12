@@ -2,17 +2,17 @@
 use amethyst::assets::{AssetStorage, Handle, HotReloadStrategy, ProcessingState, ThreadPool};
 use amethyst::core::{
     // components::Transform,
-    ecs::{Read, ReadExpect, ReadStorage, RunNow, System, SystemData, World, Write, WriteExpect},
+    ecs::{Read, ReadExpect, ReadStorage, System, SystemData, World, Write},
     timing::Time,
     // Hidden, HiddenPropagate,
 };
-use amethyst::renderer::palette::{LinSrgba, Srgba};
+use amethyst::renderer::palette::{Srgba};
 use amethyst::renderer::rendy::{
     // self,
     command::QueueId, //, Families},
     factory::Factory, // ImageState},
     // graph::{Graph, GraphBuilder},
-    texture::palette::{load_from_linear_rgba, load_from_srgba},
+    texture::palette::{load_from_srgba},
 };
 // use amethyst::renderer::{
 // camera::{ActiveCamera, Camera},

@@ -12,11 +12,11 @@ use glsl_layout::*;
 
 // region - MaterialComposition
 
-pub struct MaterialComposition {
+pub struct CompositeMaterial {
     pub components: Vec<Handle<Material>>,
 }
 
-impl Component for MaterialComposition {
+impl Component for CompositeMaterial {
     type Storage = DenseVecStorage<Self>;
 }
 
@@ -43,6 +43,7 @@ impl Component for MaterialComposition {
 //     pub uv_offset: TextureOffset,
 // }
 
+/// Material asset
 #[derive(Debug, Clone, PartialEq)]
 pub struct Material {
     pub diffuse: Handle<AmethystTexture>,

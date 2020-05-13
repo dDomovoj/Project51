@@ -2,13 +2,12 @@
 // use crate::bundles::camera_control_bundle::{MouseControlTag, CreativeMovementControlTag};
 
 use amethyst::{
-    assets::AssetLoaderSystemData, //, Handle, Loader},
-    assets::{AssetStorage, Handle, Loader},
-    ecs::{EntityBuilder, Read, WorldExt, Write},
+    assets::{AssetLoaderSystemData, AssetStorage}, //, Handle, Loader},
+    ecs::{EntityBuilder, WorldExt, Write},
     // controls::HideCursor,
     core::{
     //     transform::Transform,
-        math::{Point3, Vector3},
+        math::{Vector3},
     },
     // error::Error,
     // input::{is_key_down, is_mouse_button_down},
@@ -31,8 +30,9 @@ use amethyst::{
 use amethyst::ecs::prelude::{Component, DenseVecStorage};
 
 use crate::render_cache::{MaterialCache, MeshCache, TextureCache};
-use crate::render_material::{Material as RenderMaterial, MaterialComposition, MaterialDefaults};
-use crate::render_mesh::{CompositeMesh, Indices, Mesh, MeshBuilder, MeshData, Vertex};
+use crate::render_material::{Material as RenderMaterial, CompositeMaterial, MaterialDefaults};
+use crate::render_mesh::{CompositeMesh, Indices, Mesh, MeshBuilder, MeshData};
+use crate::render_vertex::Vertex;
 use crate::render_visibility::BoundingSphere;
 
 use amethyst::ecs::shred::SystemData;
@@ -104,7 +104,7 @@ impl Voxel {
                 materials_asset.insert(data)
             })
         };
-        let mat = MaterialComposition {
+        let mat = CompositeMaterial {
             components: vec![mat_elt],
         };
 

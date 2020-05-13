@@ -1,39 +1,15 @@
 use amethyst::{
-    assets::{
-        Completion, Handle, HotReloadBundle, Prefab, PrefabLoader, PrefabLoaderSystemDesc, Processor, ProgressCounter,
-        RonFormat,
-    },
     core::{
-        math::{UnitQuaternion, Vector3},
         timing::Time,
-        transform::{Transform, TransformBundle},
     },
     ecs::{
-        prelude::{Entity, Join, Read, ReadStorage, System, Write, WriteStorage},
-        ReadExpect, SystemData, World,
+        prelude::{Entity, Read, System, WriteStorage},
     },
-    input::{get_key, is_close_requested, is_key_down, ElementState, InputBundle, StringBindings, VirtualKeyCode},
-    prelude::*,
-    renderer::{
-        light::Light,
-        mtl::Material,
-        palette::{Srgb, Srgba},
-        pass::DrawShadedDesc,
-        rendy::mesh::{Normal, Position, TexCoord},
-        resources::AmbientColor,
-        types::DefaultBackend,
-        visibility::VisibilitySortingSystem,
-        Camera, Factory, Format, GraphBuilder, GraphCreator, Kind, MeshProcessorSystem, RenderGroupDesc,
-        RenderingSystem, SpriteSheet, SubpassBuilder, TextureProcessorSystem,
-    },
-    ui::{DrawUiDesc, UiBundle, UiCreator, UiFinder, UiGlyphsSystemDesc, UiText},
+    // ui::{DrawUiDesc, UiBundle, UiCreator, UiFinder, UiGlyphsSystemDesc, UiText},
+    ui::{UiFinder, UiText},
     utils::{
-        application_root_dir,
-        fps_counter::{FpsCounter, FpsCounterBundle},
-        scene::BasicScenePrefab,
+        fps_counter::{FpsCounter},
     },
-    window::{ScreenDimensions, Window, WindowBundle},
-    Error,
 };
 
 #[derive(Default)]

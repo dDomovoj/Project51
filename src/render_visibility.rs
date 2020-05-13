@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
 // #[cfg(feature = "profiler")]
-// use thread_profiler::profile_scope;
+// use amethyst::thread_profiler::profile_scope;
 
 /// Resource for controlling what entities should be rendered, and whether to draw them ordered or
 /// not, which is useful for transparent surfaces.
@@ -61,18 +61,18 @@ impl Default for BoundingSphere {
 }
 
 impl BoundingSphere {
-    /// Create a new `BoundingSphere` with the supplied radius and center.
-    pub fn new(center: Point3<f32>, radius: f32) -> Self {
-        Self { center, radius }
-    }
+    // /// Create a new `BoundingSphere` with the supplied radius and center.
+    // pub fn new(center: Point3<f32>, radius: f32) -> Self {
+    //     Self { center, radius }
+    // }
 
-    /// Returns the center of the sphere.
-    pub fn origin(radius: f32) -> Self {
-        Self {
-            center: Point3::origin(),
-            radius,
-        }
-    }
+    // /// Returns the center of the sphere.
+    // pub fn origin(radius: f32) -> Self {
+    //     Self {
+    //         center: Point3::origin(),
+    //         radius,
+    //     }
+    // }
 }
 
 impl Component for BoundingSphere {
@@ -123,8 +123,6 @@ impl<'a> System<'a> for VisibilitySortingSystem {
     ) {
         // #[cfg(feature = "profiler")]
         // profile_scope!("visibility_sorting_system");
-
-        return;
 
         let origin = Point3::origin();
         let defcam = Camera::standard_2d(1.0, 1.0);

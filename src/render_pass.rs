@@ -1,11 +1,7 @@
 /// Custom version of
 /// use amethyst::renderer::pass::DrawBase3D;
-use crate::render_material::{FullTextureSet, ITextureSet, Material, MaterialComposition};
-use crate::render_material_sub::{MaterialId, MaterialSub};
-use crate::render_mesh::{CompositeMesh, ExtendedBackend, Mesh, Vertex};
-use crate::render_visibility::{Visibility, VisibilitySortingSystem};
 use amethyst::{
-    assets::{AssetStorage, Handle},
+    assets::{AssetStorage},// Handle},
     core::{
         ecs::{Join, Read, ReadExpect, ReadStorage, SystemData},
         transform::Transform,
@@ -42,6 +38,13 @@ use amethyst::{
 use derivative::Derivative;
 // use smallvec::SmallVec;
 use std::marker::PhantomData;
+
+use crate::render_material::{FullTextureSet, ITextureSet, CompositeMaterial};
+use crate::render_material_sub::{MaterialId, MaterialSub};
+use crate::render_mesh::{CompositeMesh, Mesh};
+use crate::render_vertex::Vertex;
+use crate::render_visibility::{Visibility, VisibilitySortingSystem};
+use crate::render_backend::IExtendedBackend;
 
 // macro_rules! profile_scope_impl {
 //     ($string:expr) => {
@@ -142,7 +145,10 @@ lazy_static::lazy_static! {
 // region - Plugin
 
 /// A `RenderPlugin` for forward rendering of 3d objects shading.
-pub type Render3D = BaseRender<CustomPassDef>;
+// pub type Render3D = BaseRender<CustomPassDef>;
+
+/// Describes a Base 3d Pass with lighting without transparency
+pub type Draw3DDesc<B> = BaseDrawDesc<B, CustomPassDef>;
 
 // endregion
 
@@ -168,15 +174,6 @@ impl IRenderPassDef for CustomPassDef {
     }
 }
 
-// /// Describes a Custom (CR) 3d Pass with lighting
-// pub type DrawCustom3DDesc<B> = BaseDrawDesc<B, CustomPassDef>;
-// /// Draws a Custom 3d Pass with lighting
-// pub type DrawCustom3D<B> = BaseDraw<B, CustomPassDef>;
-// /// Describes a Custom (CR) 3d Pass with lighting and transparency
-// pub type DrawCustom3DTransparentDesc<B> = BaseDrawTransparentDesc<B, CustomPassDef>;
-// /// Draws a Custom (CR) 3d Pass with lighting and transparency
-// pub type DrawCustom3DTransparent<B> = BaseDrawTransparent<B, CustomPassDef>;
-
 // region - RenderPass
 
 /// A `RenderPlugin` for forward rendering of 3d objects.
@@ -196,7 +193,7 @@ pub struct BaseRender<D: IRenderPassDef> {
 //     }
 // }
 
-impl<B: ExtendedBackend, D: IRenderPassDef> RenderPlugin<B> for BaseRender<D> {
+impl<B: IExtendedBackend, D: IRenderPassDef> RenderPlugin<B> for BaseRender<D> {
     fn on_build<'a, 'b>(&mut self, _world: &mut World, builder: &mut DispatcherBuilder<'a, 'b>) -> Result<(), Error> {
         builder.add(VisibilitySortingSystem::new(), "visibility_system", &[]);
         Ok(())
@@ -237,17 +234,17 @@ pub trait IRenderPassDef: 'static + std::fmt::Debug + Send + Sync {
 /// Draw opaque 3d meshes with specified shaders and texture set
 #[derive(Clone, Derivative)]
 #[derivative(Debug(bound = ""), Default(bound = ""))]
-pub struct BaseDrawDesc<B: ExtendedBackend, T: IRenderPassDef> {
+pub struct BaseDrawDesc<B: IExtendedBackend, T: IRenderPassDef> {
     marker: PhantomData<(B, T)>,
 }
 
-impl<B: ExtendedBackend, T: IRenderPassDef> BaseDrawDesc<B, T> {
+impl<B: IExtendedBackend, T: IRenderPassDef> BaseDrawDesc<B, T> {
     pub fn new() -> Self {
         Default::default()
     }
 }
 
-impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawDesc<B, T> {
+impl<B: IExtendedBackend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawDesc<B, T> {
     fn build(
         self, _ctx: &GraphContext<B>, factory: &mut Factory<B>, _queue: QueueId, _aux: &World, framebuffer_width: u32,
         framebuffer_height: u32, subpass: hal::pass::Subpass<'_, B>, _buffers: Vec<NodeBuffer>,
@@ -293,7 +290,7 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDr
 /// Base implementation of a 3D render pass
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
-pub struct BaseDraw<B: ExtendedBackend, T: IRenderPassDef> {
+pub struct BaseDraw<B: IExtendedBackend, T: IRenderPassDef> {
     pipeline_basic: B::GraphicsPipeline,
     pipeline_layout: B::PipelineLayout,
     // static_batches: TwoLevelBatch<MaterialId, u32, SmallVec<[VertexArgs; 4]>>,
@@ -307,12 +304,12 @@ pub struct BaseDraw<B: ExtendedBackend, T: IRenderPassDef> {
     marker: PhantomData<T>,
 }
 
-impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
+impl<B: IExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B, T> {
     fn prepare(
         &mut self, factory: &Factory<B>, _queue: QueueId, index: usize, _subpass: hal::pass::Subpass<'_, B>,
         resources: &World,
     ) -> PrepareResult {
-        return PrepareResult::DrawReuse;
+        // return PrepareResult::DrawReuse;
 
         // profile_scope_impl!("prepare opaque");
 
@@ -333,7 +330,7 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
             ReadStorage<'_, Hidden>,
             ReadStorage<'_, HiddenPropagate>,
             ReadStorage<'_, CompositeMesh>,
-            ReadStorage<'_, MaterialComposition>,
+            ReadStorage<'_, CompositeMaterial>,
             ReadStorage<'_, Transform>,
             // ReadStorage<'_, Tint>,
         )>::fetch(resources);
@@ -405,7 +402,7 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
         &mut self, mut encoder: RenderPassEncoder<'_, B>, index: usize, _subpass: hal::pass::Subpass<'_, B>,
         resources: &World,
     ) {
-        return;
+        // return;
 
         // profile_scope_impl!("draw opaque");
         let mesh_elements_assets = <Read<'_, AssetStorage<Mesh>>>::fetch(resources);
@@ -457,18 +454,18 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDraw<B
 /// Draw transparent mesh with physically based lighting
 #[derive(Clone, Derivative)]
 #[derivative(Debug(bound = ""), Default(bound = ""))]
-pub struct BaseDrawTransparentDesc<B: ExtendedBackend, T: IRenderPassDef> {
+pub struct BaseDrawTransparentDesc<B: IExtendedBackend, T: IRenderPassDef> {
     marker: PhantomData<(B, T)>,
 }
 
-impl<B: ExtendedBackend, T: IRenderPassDef> BaseDrawTransparentDesc<B, T> {
+impl<B: IExtendedBackend, T: IRenderPassDef> BaseDrawTransparentDesc<B, T> {
     /// Create pass in default configuration
     pub fn new() -> Self {
         Self { marker: PhantomData }
     }
 }
 
-impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawTransparentDesc<B, T> {
+impl<B: IExtendedBackend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDrawTransparentDesc<B, T> {
     fn build(
         self, _ctx: &GraphContext<B>, factory: &mut Factory<B>, _queue: QueueId, _aux: &World, framebuffer_width: u32,
         framebuffer_height: u32, subpass: hal::pass::Subpass<'_, B>, _buffers: Vec<NodeBuffer>,
@@ -517,7 +514,7 @@ impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroupDesc<B, World> for BaseDr
 /// Draw transparent mesh with physically based lighting
 #[derive(Derivative)]
 #[derivative(Debug(bound = ""))]
-pub struct BaseDrawTransparent<B: ExtendedBackend, T: IRenderPassDef> {
+pub struct BaseDrawTransparent<B: IExtendedBackend, T: IRenderPassDef> {
     pipeline_basic: B::GraphicsPipeline,
     pipeline_layout: B::PipelineLayout,
     // static_batches: OrderedTwoLevelBatch<MaterialId, u32, VertexArgs>,
@@ -530,7 +527,7 @@ pub struct BaseDrawTransparent<B: ExtendedBackend, T: IRenderPassDef> {
     marker: PhantomData<T>,
 }
 
-impl<B: ExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparent<B, T> {
+impl<B: IExtendedBackend, T: IRenderPassDef> RenderGroup<B, World> for BaseDrawTransparent<B, T> {
     fn prepare(
         &mut self, factory: &Factory<B>, _queue: QueueId, index: usize, _subpass: hal::pass::Subpass<'_, B>,
         resources: &World,

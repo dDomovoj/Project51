@@ -1,10 +1,6 @@
 //! Module for mesh support.
 use amethyst::assets::{Asset, Handle};
-// use amethyst::assets::{AssetPrefab, AssetStorage, Format, Handle, Loader, PrefabData, ProgressCounter};
 use amethyst::core::ecs::{Component, DenseVecStorage};
-// use amethyst::core::ecs::{Entity, Read, ReadExpect, WriteStorage};
-// use amethyst::error::Error;
-use amethyst::renderer::types::Backend;
 use serde::{Deserialize, Serialize};
 
 use amethyst::renderer::rendy::{
@@ -15,169 +11,27 @@ use amethyst::renderer::rendy::{
     mesh::{AsVertex, VertexFormat},
     resource::{Buffer, BufferInfo, Escape},
     util::cast_cow,
-    mesh::{Normal, Position, TexCoord},
 };
 use gfx_hal::adapter::PhysicalDevice;
 use std::{borrow::Cow, mem::size_of};
 
 // endregion
 
-// region - Backend
-
-// /// Extension of the rendy Backend trait.
-// pub trait Backend: rendy::hal::Backend {
-//     /// Unwrap a Backend to a rendy `Mesh`
-//     fn unwrap_mesh(mesh: &Mesh) -> Option<&BackendMesh<Self>>;
-//     /// Unwrap a Backend to a rendy `Texture`
-//     fn wrap_mesh(mesh: BackendMesh<Self>) -> Mesh;
-
-//     // /// Wrap a rendy `Texture` to its Backend generic.
-//     // fn wrap_texture(texture: rendy::texture::Texture<Self>) -> Texture;
-//     // fn unwrap_texture(texture: &Texture) -> Option<&rendy::texture::Texture<Self>>;
-//     // /// Wrap a rendy `Mesh` to its Backend generic.
-// }
-
-pub trait ExtendedBackend: Backend {
-    fn unwrap_mesh_element(mesh: &Mesh) -> Option<&GenericMesh<Self>>;
-
-    fn wrap_mesh_element(mesh: GenericMesh<Self>) -> Mesh;
-}
-
-// macro_rules! impl_backends {
-//     ($($variant:ident, $feature:literal, $backend:ty;)*) => {
-
-//         // impl_single_default!($([$feature, $backend]),*);
-//         // static_assertions::assert_cfg!(
-//         //     any($(feature = $feature),*),
-//         //     concat!("You must specify at least one graphical backend feature: ", stringify!($($feature),* "See the wiki article https://book.amethyst.rs/stable/appendices/c_feature_gates.html#graphics-features for more details."))
-//         // );
-
-//         // /// Backend wrapper.
-//         // #[derive(Debug)]
-//         // pub enum BackendVariant {
-//         //     $(
-//         //         #[cfg(feature = $feature)]
-//         //         #[doc = "Backend Variant"]
-//         //         $variant,
-//         //     )*
-//         // }
-
-//         /// Mesh wrapper.
-//         #[derive(Debug)]
-//         pub enum Mesh {
-//             $(
-//                 #[cfg(feature = $feature)]
-//                 #[doc = "Mesh Variant"]
-//                 $variant(BackendMesh<$backend>),
-//             )*
-//         }
-
-//         // /// Texture wrapper.
-//         // #[derive(Debug)]
-//         // pub enum Texture {
-//         //     $(
-//         //         #[cfg(feature = $feature)]
-//         //         #[doc = "Texture Variant"]
-//         //         $variant(rendy::texture::Texture<$backend>),
-//         //     )*
-//         // }
-
-//         $(
-//             #[cfg(feature = $feature)]
-//             impl ExtendedBackend for $backend {
-//                 #[inline]
-//                 #[allow(irrefutable_let_patterns)]
-//                 fn unwrap_custom_mesh(mesh: &Mesh) -> Option<&BackendMesh<Self>> {
-//                     if let Mesh::$variant(inner) = mesh {
-//                         Some(inner)
-//                     } else {
-//                         None
-//                     }
-//                 }
-//                 #[inline]
-//                 fn wrap_custom_mesh(mesh: BackendMesh<Self>) -> Mesh {
-//                     Mesh::$variant(mesh)
-//                 }
-//                 // #[inline]
-//                 // #[allow(irrefutable_let_patterns)]
-//                 // fn unwrap_texture(texture: &Texture) -> Option<&rendy::texture::Texture<Self>> {
-//                 //     if let Texture::$variant(inner) = texture {
-//                 //         Some(inner)
-//                 //     } else {
-//                 //         None
-//                 //     }
-//                 // }
-//                 // #[inline]
-//                 // fn wrap_texture(texture: rendy::texture::Texture<Self>) -> Texture {
-//                 //     Texture::$variant(texture)
-//                 // }
-//             }
-//         )*
-//     };
-// }
-
-// Create `DefaultExtendedBackend` type alias only when exactly one backend is selected.
-// macro_rules! impl_single_default {
-// ( $([$feature:literal, $backend:ty]),* ) => {
-//     impl_single_default!(@ (), ($([$feature, $backend])*));
-// };
-// (@ ($($prev:literal)*), ([$cur:literal, $backend:ty]) ) => {
-//     #[cfg(all( feature = $cur, not(any($(feature = $prev),*)) ))]
-//     #[doc = "Default backend"]
-//     pub type DefaultExtendedBackend = $backend;
-// };
-// (@ ($($prev:literal)*), ([$cur:literal, $backend:ty] $([$nf:literal, $nb:ty])*) ) => {
-//     #[cfg(all( feature = $cur, not(any($(feature = $prev,)* $(feature = $nf),*)) ))]
-//     #[doc = "Default backend"]
-//     pub type DefaultExtendedBackend = $backend;
-
-//     impl_single_default!(@ ($($prev)* $cur), ($([$nf, $nb])*) );
-// };
-// }
-
-// impl_backends!(
-//     // DirectX 12 is currently disabled because of incomplete gfx-hal support for it.
-//     // It will be re-enabled when it actually works.
-//     // Dx12, "dx12", rendy::dx12::Backend;
-//     Metal, "metal", rendy::metal::Backend;
-//     Vulkan, "vulkan", rendy::vulkan::Backend;
-//     Empty, "empty", rendy::empty::Backend;
-// );
-
-pub type DefaultExtendedBackend = rendy::metal::Backend;
-
-/// Mesh wrapper.
-/// #[derive(Debug)]
+/// Mutiple meshes wrapper. Component
+#[derive(Debug)]
 pub struct CompositeMesh {
-    // pub element: Handle<Mesh>
     pub elements: Vec<Handle<Mesh>>,
 }
 
-/// Mesh element wrapper.
+/// Mesh wrapper. Asset
 #[derive(Debug)]
 pub enum Mesh {
     Metal(GenericMesh<rendy::metal::Backend>),
 }
 
-impl ExtendedBackend for rendy::metal::Backend {
-    #[inline]
-    #[allow(irrefutable_let_patterns)]
-    fn unwrap_mesh_element(mesh: &Mesh) -> Option<&GenericMesh<Self>> {
-        if let Mesh::Metal(inner) = mesh {
-            Some(inner)
-        } else {
-            None
-        }
-    }
-    #[inline]
-    fn wrap_mesh_element(mesh: GenericMesh<Self>) -> Mesh {
-        Mesh::Metal(mesh)
-    }
-}
-
 // endregion
 
-// region - Assets
+// region - Components
 
 impl Component for CompositeMesh {
     // const NAME: &'static str = "custom:Mesh";
@@ -185,6 +39,10 @@ impl Component for CompositeMesh {
     // type HandleStorage = DenseVecStorage<Handle<Self>>;
     type Storage = DenseVecStorage<Self>;
 }
+
+// endregion
+
+// region - Assets
 
 amethyst::assets::register_format_type!(MeshData);
 impl Asset for Mesh {
@@ -251,32 +109,8 @@ pub struct IndexBuffer<B: gfx_hal::Backend> {
 /// Abstracts over two types of indices and their absence.
 #[derive(Debug)]
 pub enum Indices<'a> {
-    // /// No indices.
-    // None,
-
-    // /// `u16` per index.
-    // U16(Cow<'a, [u16]>),
-    /// `u32` per index.
     U32(Cow<'a, [u32]>),
 }
-
-// impl From<Vec<u16>> for Indices<'static> {
-//     fn from(vec: Vec<u16>) -> Self {
-//         Indices::U16(vec.into())
-//     }
-// }
-
-// impl<'a> From<&'a [u16]> for Indices<'a> {
-//     fn from(slice: &'a [u16]) -> Self {
-//         Indices::U16(slice.into())
-//     }
-// }
-
-// impl<'a> From<Cow<'a, [u16]>> for Indices<'a> {
-//     fn from(cow: Cow<'a, [u16]>) -> Self {
-//         Indices::U16(cow)
-//     }
-// }
 
 impl From<Vec<u32>> for Indices<'static> {
     fn from(vec: Vec<u32>) -> Self {
@@ -762,28 +596,5 @@ macro_rules! impl_builder_from_vec {
 }
 
 impl_builder_from_vec!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
-
-// endregion
-
-// region - Vertex
-
-#[derive(Debug, Copy, Clone, PartialOrd, PartialEq)]
-pub struct Vertex {
-    pub xyz: [f32; 3],
-    pub norm: [f32; 3],
-    pub uv: [f32; 2],
-}
-
-impl AsVertex for Vertex {
-
-    fn vertex() -> VertexFormat {
-        VertexFormat::new((Position::vertex(), Normal::vertex(), TexCoord::vertex()))
-    }
-
-}
-
-// region - MeshBuilder
-
-pub struct NewMeshBuilder {}
 
 // endregion
